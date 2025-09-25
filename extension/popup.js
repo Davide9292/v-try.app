@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (result.geminiApiKey) {
         apiKeyInput.value = result.geminiApiKey;
-        showStatus('API Key caricata ✓', 'success');
+        showStatus('API Key loaded ✓', 'success');
       }
       
       if (result.userImage) {
@@ -46,13 +46,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiKey = apiKeyInput.value.trim();
     
     if (!apiKey) {
-      showStatus('Inserisci una API Key valida', 'error');
+      showStatus('Enter a valid API Key', 'error');
       return;
     }
 
     try {
       // Test the API key
-      showStatus('Verifica API Key...', '');
+      showStatus('Verifying API Key...', '');
       
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
         headers: {
@@ -62,13 +62,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (response.ok) {
         await chrome.storage.local.set({ geminiApiKey: apiKey });
-        showStatus('API Key salvata e verificata ✓', 'success');
+        showStatus('API Key saved and verified ✓', 'success');
       } else {
-        showStatus('API Key non valida ✗', 'error');
+        showStatus('Invalid API Key ✗', 'error');
       }
     } catch (error) {
       console.error('Error saving API key:', error);
-      showStatus('Errore nella verifica ✗', 'error');
+      showStatus('Verification error ✗', 'error');
     }
   }
 
@@ -78,13 +78,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Check file size (max 4MB)
     if (file.size > 4 * 1024 * 1024) {
-      showStatus('Immagine troppo grande (max 4MB)', 'error');
+      showStatus('Image too large (max 4MB)', 'error');
       return;
     }
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      showStatus('Seleziona un file immagine valido', 'error');
+      showStatus('Select a valid image file', 'error');
       return;
     }
 
@@ -95,10 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         await chrome.storage.local.set({ userImage: imageData });
         displayImagePreview(imageData);
-        showStatus('Immagine salvata ✓', 'success');
+        showStatus('Image saved ✓', 'success');
       } catch (error) {
         console.error('Error saving image:', error);
-        showStatus('Errore nel salvare l\'immagine', 'error');
+        showStatus('Error saving image', 'error');
       }
     };
     

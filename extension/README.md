@@ -1,98 +1,98 @@
 # MirrorMe Chrome Extension
 
-Chrome extension per virtual try-on con AI, parte della piattaforma V-Try.app.
+Chrome extension for AI virtual try-on, part of the V-Try.app platform.
 
-## 🚀 Installazione Rapida
+## 🚀 Quick Installation
 
-1. Clona la repository principale:
+1. Clone the main repository:
 ```bash
-git clone https://github.com/davidepedone/v-try.app.git
+git clone https://github.com/Davide9292/v-try.app.git
 cd v-try.app/extension/
 ```
 
-2. Carica l'estensione in Chrome:
-   - Apri Chrome e vai su `chrome://extensions/`
-   - Attiva "Modalità sviluppatore"
-   - Clicca "Carica estensione non pacchettizzata"
-   - Seleziona la cartella `extension/`
+2. Load the extension in Chrome:
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked extension"
+   - Select the `extension/` folder
 
-3. Configura l'estensione:
-   - Clicca sull'icona MirrorMe
-   - Inserisci la tua [Gemini API Key](https://ai.google.dev/gemini-api/docs/api-key)
-   - Carica la tua foto
+3. Configure the extension:
+   - Click on the MirrorMe icon
+   - Enter your [Gemini API Key](https://ai.google.dev/gemini-api/docs/api-key)
+   - Upload your photo
 
-## 📁 Struttura File
+## 📁 File Structure
 
 ```
 extension/
-├── manifest.json       # Configurazione estensione
-├── popup.html         # Interfaccia popup
-├── popup.css          # Stili popup
-├── popup.js           # Logica popup
-├── content.js         # Script per pagine web
-├── content.css        # Stili per badge e modal
+├── manifest.json       # Extension configuration
+├── popup.html         # Popup interface
+├── popup.css          # Popup styles
+├── popup.js           # Popup logic
+├── content.js         # Web page scripts
+├── content.css        # Badge and modal styles
 ├── background.js      # Service worker
-├── icons/            # Icone estensione
-├── test_page.html    # Pagina di test
-└── create_icons.html # Generatore icone
+├── icons/            # Extension icons
+├── test_page.html    # Test page
+└── create_icons.html # Icon generator
 ```
 
-## 🎯 Come Funziona
+## 🎯 How It Works
 
-1. **Hover Detection**: Rileva quando passi il mouse su un'immagine
-2. **Badge Display**: Mostra il badge MirrorMe
-3. **AI Processing**: Invia immagini a Gemini AI
-4. **Result Display**: Mostra il risultato in un modal elegante
+1. **Hover Detection**: Detects when you hover over an image
+2. **Badge Display**: Shows the MirrorMe badge
+3. **AI Processing**: Sends images to Gemini AI
+4. **Result Display**: Shows the result in an elegant modal
 
-## 🔧 Configurazione Sviluppatore
+## 🔧 Developer Configuration
 
-### Prerequisiti
+### Prerequisites
 - Chrome 88+
 - Gemini API Key
 
 ### Debug
 ```bash
-# Console extension
-chrome://extensions/ > MirrorMe > Dettagli > Ispeziona visualizzazioni
+# Extension console
+chrome://extensions/ > MirrorMe > Details > Inspect views
 
-# Console content script
-F12 > Console (su qualsiasi pagina web)
+# Content script console
+F12 > Console (on any webpage)
 ```
 
-### Test
-Apri `test_page.html` per testare tutte le funzionalità.
+### Testing
+Open `test_page.html` to test all functionality.
 
-## 🌐 Integrazione Website
+## 🌐 Website Integration
 
-Questa estensione è parte della piattaforma V-Try.app. Il website principale fornisce:
+This extension is part of the V-Try.app platform. The main website provides:
 - Account management
-- Cronologia try-on
-- Funzionalità avanzate
-- Download estensione
+- Try-on history
+- Advanced features
+- Extension download
 
-## 📊 Metriche
+## 📊 Metrics
 
-L'estensione traccia (localmente):
-- Try-on completati
-- Errori API
+The extension tracks (locally):
+- Completed try-ons
+- API errors
 - Performance metrics
 
 ## 🔒 Privacy
 
-- Nessun tracking esterno
-- Dati salvati solo localmente
-- API calls solo a Google Gemini
-- Nessuna raccolta dati personali
+- No external tracking
+- Data saved only locally
+- API calls only to Google Gemini
+- No personal data collection
 
-## 📝 Limitazioni
+## 📝 Limitations
 
-- Rate limits API Gemini
-- Immagini max 4MB
-- CORS restrictions su alcuni siti
-- Solo immagini statiche (video in arrivo)
+- Gemini API rate limits
+- Images max 4MB
+- CORS restrictions on some sites
+- Static images only (video coming soon)
 
-## 🆘 Supporto
+## 🆘 Support
 
-- [Documentazione completa](../docs/)
-- [Issues GitHub](https://github.com/davidepedone/v-try.app/issues)
-- [Website V-Try.app](https://v-try.app) (quando disponibile)
+- [Complete documentation](../docs/)
+- [GitHub Issues](https://github.com/Davide9292/v-try.app/issues)
+- [V-Try.app Website](https://v-try.app) (when available)

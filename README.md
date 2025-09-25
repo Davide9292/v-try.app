@@ -1,18 +1,18 @@
 # V-Try.app - AI Virtual Try-On Platform
 
-Una piattaforma completa per provare virtualmente prodotti utilizzando l'intelligenza artificiale avanzata di Google Gemini.
+A complete platform for virtually trying on products using advanced Google Gemini artificial intelligence.
 
-## 🌟 Panoramica del Progetto
+## 🌟 Project Overview
 
-V-Try.app combina un'estensione Chrome innovativa con un website moderno per offrire un'esperienza completa di virtual try-on alimentata dall'AI.
+V-Try.app combines an innovative Chrome extension with a modern website to offer a complete AI-powered virtual try-on experience.
 
-### 🎯 Componenti Principali
+### 🎯 Main Components
 
-- **Chrome Extension**: Prova virtualmente prodotti direttamente sui siti web
-- **Website**: Piattaforma web per gestire account, cronologia e funzionalità avanzate
+- **Chrome Extension**: Virtually try on products directly on websites
+- **Website**: Web platform to manage accounts, history, and advanced features
 - **AI Engine**: Powered by Google Gemini 2.5 Flash Image
 
-## 📁 Struttura Repository
+## 📁 Repository Structure
 
 ```
 v-try.app/
@@ -24,12 +24,12 @@ v-try.app/
 │   └── icons/
 ├── website/            # Website v-try.app
 │   └── (Next.js/React app)
-├── docs/               # Documentazione
+├── docs/               # Documentation
 │   ├── DEPLOYMENT.md
 │   ├── install_guide.md
 │   └── video_alternatives.md
-├── assets/             # Asset condivisi
-└── README.md          # Questo file
+├── assets/             # Shared assets
+└── README.md          # This file
 ```
 
 ## 🚀 Quick Start
@@ -37,8 +37,8 @@ v-try.app/
 ### Chrome Extension
 ```bash
 cd extension/
-# Carica l'estensione in Chrome Developer Mode
-# Vedi docs/install_guide.md per istruzioni dettagliate
+# Load extension in Chrome Developer Mode
+# See docs/install_guide.md for detailed instructions
 ```
 
 ### Website Development
@@ -46,110 +46,110 @@ cd extension/
 cd website/
 npm install
 npm run dev
-# Il website sarà disponibile su http://localhost:3000
+# Website will be available at http://localhost:3000
 ```
 
-## ✨ Caratteristiche
+## ✨ Features
 
 ### Chrome Extension
-- **Hover Badge**: Interfaccia intuitiva su qualsiasi immagine web
-- **AI Image Generation**: Gemini 2.5 Flash Image per risultati realistici
-- **Context-Aware**: Prompt intelligenti basati sul contesto
-- **Privacy First**: Elaborazione locale e API sicure
+- **Hover Badge**: Intuitive interface on any web image
+- **AI Image Generation**: Gemini 2.5 Flash Image for realistic results
+- **Context-Aware**: Smart prompts based on context
+- **Privacy First**: Local processing and secure APIs
 
-### Website (Pianificato)
-- **Account Management**: Gestione utenti e preferenze
-- **History**: Cronologia dei try-on effettuati
-- **Advanced Features**: Batch processing, preset di stili
-- **Social Sharing**: Condivisione sui social media
-- **Analytics**: Dashboard per sviluppatori
+### Website (Planned)
+- **Account Management**: User and preferences management
+- **History**: Try-on history tracking
+- **Advanced Features**: Batch processing, style presets
+- **Social Sharing**: Social media sharing
+- **Analytics**: Developer dashboard
 
-## 🛠️ Stack Tecnologico
+## 🛠️ Technology Stack
 
 ### Extension
 - **Manifest V3**: Chrome Extensions API
-- **Vanilla JavaScript**: Performance ottimizzate
+- **Vanilla JavaScript**: Optimized performance
 - **Google Gemini**: AI image generation
-- **Chrome Storage API**: Persistenza dati
+- **Chrome Storage API**: Data persistence
 
-### Website (Raccomandato)
-- **Next.js 14**: Framework React con App Router
+### Website (Recommended)
+- **Next.js 14**: React framework with App Router
 - **TypeScript**: Type safety
-- **Tailwind CSS**: Styling utility-first
+- **Tailwind CSS**: Utility-first styling
 - **Prisma**: Database ORM
-- **NextAuth.js**: Autenticazione
-- **Vercel**: Deployment e hosting
+- **NextAuth.js**: Authentication
+- **Vercel**: Deployment and hosting
 
 ## 🔄 Roadmap
 
-### Fase 1: Foundation (Completata)
-- ✅ Chrome Extension base
-- ✅ AI image generation con Gemini
+### Phase 1: Foundation (Completed)
+- ✅ Base Chrome Extension
+- ✅ AI image generation with Gemini
 - ✅ Repository setup
 
-### Fase 2: Website Launch
-- [ ] Website base con landing page
+### Phase 2: Website Launch
+- [ ] Base website with landing page
 - [ ] User authentication
-- [ ] Extension download e setup guide
+- [ ] Extension download and setup guide
 - [ ] Basic analytics
 
-### Fase 3: Advanced Features
+### Phase 3: Advanced Features
 - [ ] User dashboard
-- [ ] History e favorites
+- [ ] History and favorites
 - [ ] Advanced AI features
 - [ ] Social sharing
 
-### Fase 4: Scale
+### Phase 4: Scale
 - [ ] Video generation (Veo integration)
 - [ ] Mobile app
-- [ ] API per sviluppatori
+- [ ] Developer APIs
 - [ ] Enterprise features
 
 ## 🌐 Deployment
 
 ### Website (v-try.app)
 - **Domain**: https://v-try.app
-- **Hosting**: Vercel (raccomandato per Next.js)
+- **Hosting**: Vercel (recommended for Next.js)
 - **Database**: PostgreSQL (Supabase/PlanetScale)
 - **CDN**: Vercel Edge Network
 
 ### Extension
-- **Chrome Web Store**: Pubblicazione ufficiale
-- **Auto-updates**: Gestite da Chrome
+- **Chrome Web Store**: Official publication
+- **Auto-updates**: Managed by Chrome
 - **Analytics**: Chrome Extension Analytics
 
-## 📊 Metriche di Successo
+## 📊 Success Metrics
 
 ### Extension
-- Installazioni attive
-- Try-on completati
+- Active installations
+- Completed try-ons
 - User retention
-- Rating Chrome Web Store
+- Chrome Web Store rating
 
 ### Website
-- Traffico organico
-- Conversioni download
+- Organic traffic
+- Download conversions
 - User engagement
 - API usage
 
-## 🤝 Contributi
+## 🤝 Contributing
 
-1. Fork del repository
-2. Crea feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit delle modifiche (`git commit -m 'Add amazing feature'`)
-4. Push al branch (`git push origin feature/amazing-feature`)
-5. Apri una Pull Request
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📞 Supporto
+## 📞 Support
 
-- **Issues**: GitHub Issues per bug e feature requests
-- **Discussions**: GitHub Discussions per domande generali
-- **Email**: support@v-try.app (quando attivo)
+- **Issues**: GitHub Issues for bugs and feature requests
+- **Discussions**: GitHub Discussions for general questions
+- **Email**: support@v-try.app (when active)
 
-## 📄 Licenza
+## 📄 License
 
-MIT License - Vedi [LICENSE](LICENSE) per dettagli.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**🚀 V-Try.app - Il futuro del virtual try-on è qui!**
+**🚀 V-Try.app - The future of virtual try-on is here!**

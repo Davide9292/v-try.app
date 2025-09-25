@@ -1,39 +1,39 @@
 # V-Try.app Website
 
-Website principale per la piattaforma V-Try.app, deployato su https://v-try.app.
+Main website for the V-Try.app platform, deployed at https://v-try.app.
 
-## 🚧 Status: In Sviluppo
+## 🚧 Status: In Development
 
-Questo website è attualmente in fase di pianificazione. Sarà sviluppato con:
+This website is currently in planning phase. It will be developed with:
 
-- **Next.js 14** con App Router
-- **TypeScript** per type safety
-- **Tailwind CSS** per styling
-- **Prisma** per database
-- **NextAuth.js** per autenticazione
-- **Vercel** per deployment
+- **Next.js 14** with App Router
+- **TypeScript** for type safety
+- **Tailwind CSS** for styling
+- **Prisma** for database
+- **NextAuth.js** for authentication
+- **Vercel** for deployment
 
-## 🎯 Funzionalità Pianificate
+## 🎯 Planned Features
 
 ### Landing Page
-- Hero section con demo interattiva
-- Spiegazione del servizio
-- Download Chrome Extension
-- Testimonials e case studies
+- Hero section with interactive demo
+- Service explanation
+- Chrome Extension download
+- Testimonials and case studies
 
 ### User Dashboard
 - Account management
-- Cronologia try-on
-- Preferenze e settings
+- Try-on history
+- Preferences and settings
 - Usage analytics
 
-### Features Avanzate
+### Advanced Features
 - Batch processing
 - Custom presets
 - Social sharing
 - API access
 
-## 🚀 Quick Start (Futuro)
+## 🚀 Quick Start (Future)
 
 ```bash
 cd website/
@@ -51,7 +51,7 @@ npm run dev
 ## 📋 TODO
 
 - [ ] Setup Next.js project
-- [ ] Design system con Tailwind
+- [ ] Design system with Tailwind
 - [ ] Database schema design
 - [ ] Authentication setup
 - [ ] Landing page development
@@ -61,7 +61,7 @@ npm run dev
 - [ ] SEO optimization
 - [ ] Performance optimization
 
-## 🔗 Links Utili
+## 🔗 Useful Links
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Tailwind CSS](https://tailwindcss.com/)

@@ -1,7 +1,7 @@
 {
-  "name": "mirrorme-extension",
+  "name": "v-try-app",
   "version": "1.0.0",
-  "description": "Chrome extension that combines your image with any web image using Gemini AI",
+  "description": "AI Virtual Try-On Platform - Chrome extension and website for trying on products using Gemini AI",
   "main": "background.js",
   "scripts": {
     "build": "echo 'Extension ready for loading in Chrome'",
@@ -10,11 +10,14 @@
   "keywords": [
     "chrome-extension",
     "ai",
+    "virtual-try-on",
     "image-generation",
     "gemini",
-    "photo-editing"
+    "photo-editing",
+    "fashion",
+    "e-commerce"
   ],
-  "author": "MirrorMe Team",
+  "author": "V-Try.app Team",
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {},

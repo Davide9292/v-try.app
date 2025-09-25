@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MirrorMe - AI Image Fusion",
+  "name": "MirrorMe - AI Virtual Try-On",
   "version": "1.0.0",
-  "description": "Combina la tua immagine con qualsiasi foto del web usando l'AI di Gemini",
+  "description": "Combine your image with any web photo using Gemini AI for virtual try-on",
   
   "permissions": [
     "activeTab",

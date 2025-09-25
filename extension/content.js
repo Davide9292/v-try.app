@@ -109,12 +109,12 @@ class MirrorMe {
       const { geminiApiKey, userImage } = await chrome.storage.local.get(['geminiApiKey', 'userImage']);
 
       if (!geminiApiKey) {
-        this.showError('⚙️ Configura prima la tua API key di Gemini nel popup dell\'estensione!');
+        this.showError('⚙️ Please configure your Gemini API key in the extension popup first!');
         return;
       }
 
       if (!userImage) {
-        this.showError('📸 Carica prima la tua foto nel popup dell\'estensione!');
+        this.showError('📸 Please upload your photo in the extension popup first!');
         return;
       }
 
@@ -124,7 +124,7 @@ class MirrorMe {
       // Convert target image to base64
       const targetImageData = await this.imageToBase64(targetImg);
       if (!targetImageData) {
-        throw new Error('Impossibile convertire l\'immagine target');
+        throw new Error('Unable to convert target image');
       }
 
       // Generate swapped image using Gemini (with retry logic)
@@ -137,7 +137,7 @@ class MirrorMe {
 
     } catch (error) {
       console.error('❌ Face/body swap failed:', error);
-      this.showError(`Errore: ${error.message}`);
+      this.showError(`Error: ${error.message}`);
     } finally {
       this.isProcessing = false;
       this.hideLoading();
@@ -346,10 +346,10 @@ class MirrorMe {
             margin: 0 auto 20px;
           "></div>
           <div style="color: #333; font-size: 16px; font-weight: 600;">
-            🎭 Generando la tua immagine...
+            🎭 Generating your image...
           </div>
           <div style="color: #666; font-size: 14px; margin-top: 8px;">
-            Questo può richiedere alcuni secondi
+            This may take a few seconds
           </div>
         </div>
       </div>
