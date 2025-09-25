@@ -1,0 +1,334 @@
+// V-Try.app Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  firstName String?
+  lastName  String?
+  
+  // Authentication
+  passwordHash String
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
+  
+  // Profile
+  avatarUrl String?
+  faceImageUrl String? // Required for AI generation
+  bodyImageUrl String? // Required for AI generation
+  
+  // Subscription
+  subscription SubscriptionTier @default(FREE)
+  subscriptionExpiresAt DateTime?
+  
+  // Preferences
+  preferences Json @default("{}")
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+  
+  // Relations
+  tryOnResults TryOnResult[]
+  collections Collection[]
+  apiUsage ApiUsage[]
+  sessions Session[]
+  
+  @@map("users")
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// Authentication Sessions
+model Session {
+  id String @id @default(cuid())
+  userId String
+  token String @unique
+  refreshToken String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+// Try-On Results
+model TryOnResult {
+  id String @id @default(cuid())
+  userId String
+  
+  // Images/Videos
+  originalImageUrl String
+  generatedImageUrl String
+  generatedVideoUrl String?
+  generationType GenerationType @default(IMAGE)
+  
+  // Product Information
+  productUrl String
+  productTitle String?
+  productDescription String?
+  productPrice String?
+  productCurrency String?
+  productBrand String?
+  productCategory String?
+  
+  // Website Information
+  websiteDomain String
+  websiteTitle String
+  websiteDescription String?
+  websiteFavicon String?
+  
+  // AI Generation Metadata
+  aiModel String // "nano_banana" or "veo3"
+  aiPrompt String
+  aiStyle AIGenerationStyle
+  aiParameters Json @default("{}")
+  processingTime Int? // milliseconds
+  cost Decimal @default(0) @db.Decimal(10, 4)
+  quality Float? // 0-1 score
+  jobId String?
+  
+  // User Metadata
+  faceImageUsed String
+  bodyImageUsed String
+  deviceInfo Json @default("{}")
+  location Json?
+  
+  // Status
+  status GenerationStatus @default(QUEUED)
+  error String?
+  
+  // Social Features
+  isPublic Boolean @default(false)
+  tags String[] @default([])
+  
+  // Analytics
+  views Int @default(0)
+  likes Int @default(0)
+  shares Int @default(0)
+  clicks Int @default(0) // clicks to product URL
+  saves Int @default(0)
+  reportCount Int @default(0)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionItems CollectionItem[]
+  
+  @@index([userId, createdAt])
+  @@index([websiteDomain])
+  @@index([productCategory])
+  @@index([status])
+  @@map("try_on_results")
+}
+
+enum GenerationType {
+  IMAGE
+  VIDEO
+}
+
+enum AIGenerationStyle {
+  REALISTIC
+  ARTISTIC
+  FASHION
+  LIFESTYLE
+}
+
+enum GenerationStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Collections
+model Collection {
+  id String @id @default(cuid())
+  userId String
+  name String
+  description String?
+  coverImageUrl String?
+  isPublic Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+  
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionItem {
+  id String @id @default(cuid())
+  collectionId String
+  tryOnResultId String
+  addedAt DateTime @default(now())
+  
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  tryOnResult TryOnResult @relation(fields: [tryOnResultId], references: [id], onDelete: Cascade)
+  
+  @@unique([collectionId, tryOnResultId])
+  @@map("collection_items")
+}
+
+// API Usage Tracking
+model ApiUsage {
+  id String @id @default(cuid())
+  userId String
+  date DateTime @default(now()) @db.Date
+  
+  // Usage counts
+  imagesGenerated Int @default(0)
+  videosGenerated Int @default(0)
+  totalCost Decimal @default(0) @db.Decimal(10, 4)
+  
+  // API calls
+  apiCalls Int @default(0)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@map("api_usage")
+}
+
+// System Analytics
+model Analytics {
+  id String @id @default(cuid())
+  date DateTime @default(now()) @db.Date
+  
+  // User metrics
+  totalUsers Int @default(0)
+  activeUsers Int @default(0)
+  newUsers Int @default(0)
+  
+  // Generation metrics
+  totalGenerations Int @default(0)
+  imageGenerations Int @default(0)
+  videoGenerations Int @default(0)
+  successfulGenerations Int @default(0)
+  failedGenerations Int @default(0)
+  
+  // Revenue metrics
+  totalRevenue Decimal @default(0) @db.Decimal(12, 2)
+  subscriptionRevenue Decimal @default(0) @db.Decimal(12, 2)
+  apiRevenue Decimal @default(0) @db.Decimal(12, 2)
+  
+  // Performance metrics
+  avgProcessingTime Float @default(0) // seconds
+  avgQualityScore Float @default(0) // 0-1
+  
+  @@unique([date])
+  @@map("analytics")
+}
+
+// Website Analytics
+model WebsiteAnalytics {
+  id String @id @default(cuid())
+  domain String
+  date DateTime @default(now()) @db.Date
+  
+  // Usage on this website
+  tryOnsGenerated Int @default(0)
+  uniqueUsers Int @default(0)
+  totalClicks Int @default(0) // clicks back to product
+  
+  // Product categories
+  topCategories String[] @default([])
+  
+  @@unique([domain, date])
+  @@index([domain])
+  @@map("website_analytics")
+}
+
+// Error Logging
+model ErrorLog {
+  id String @id @default(cuid())
+  userId String?
+  
+  // Error details
+  errorType String
+  errorMessage String
+  stackTrace String?
+  
+  // Context
+  endpoint String?
+  userAgent String?
+  ipAddress String?
+  
+  // Metadata
+  metadata Json @default("{}")
+  
+  createdAt DateTime @default(now())
+  
+  @@index([errorType])
+  @@index([createdAt])
+  @@map("error_logs")
+}
+
+// Feature Flags
+model FeatureFlag {
+  id String @id @default(cuid())
+  name String @unique
+  enabled Boolean @default(false)
+  description String?
+  
+  // Targeting
+  userTiers SubscriptionTier[] @default([])
+  userIds String[] @default([])
+  percentage Int @default(0) // 0-100
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("feature_flags")
+}
+
+// Notifications
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  
+  type NotificationType
+  title String
+  message String
+  data Json @default("{}")
+  
+  read Boolean @default(false)
+  readAt DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  GENERATION_COMPLETE
+  GENERATION_FAILED
+  SUBSCRIPTION_EXPIRED
+  FEATURE_ANNOUNCEMENT
+  SYSTEM_MAINTENANCE
+}

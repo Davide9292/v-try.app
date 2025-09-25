@@ -1,29 +1,84 @@
 {
   "name": "v-try-app",
-  "version": "1.0.0",
-  "description": "AI Virtual Try-On Platform - Chrome extension and website for trying on products using Gemini AI",
-  "main": "background.js",
+  "version": "2.0.0",
+  "description": "Enterprise AI Virtual Try-On Platform with KIE AI, user authentication, and feed management",
+  "main": "api/src/index.js",
   "scripts": {
-    "build": "echo 'Extension ready for loading in Chrome'",
-    "test": "echo 'No tests configured yet'"
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:website\" \"npm run dev:worker\"",
+    "dev:api": "cd api && npm run dev",
+    "dev:website": "cd website && npm run dev",
+    "dev:worker": "cd api && npm run worker",
+    "build": "npm run build:api && npm run build:website && npm run build:extension",
+    "build:api": "cd api && npm run build",
+    "build:website": "cd website && npm run build",
+    "build:extension": "cd extension && npm run build",
+    "test": "npm run test:api && npm run test:website",
+    "test:api": "cd api && npm test",
+    "test:website": "cd website && npm test",
+    "db:migrate": "cd api && npx prisma migrate dev",
+    "db:generate": "cd api && npx prisma generate",
+    "db:seed": "cd api && npx prisma db seed",
+    "docker:up": "cd infrastructure/docker && docker-compose up -d",
+    "docker:down": "cd infrastructure/docker && docker-compose down",
+    "docker:build": "cd infrastructure/docker && docker-compose build",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky install"
   },
   "keywords": [
     "chrome-extension",
     "ai",
     "virtual-try-on",
     "image-generation",
-    "gemini",
-    "photo-editing",
+    "video-generation",
+    "kie-ai",
+    "nano-banana",
+    "veo3",
     "fashion",
-    "e-commerce"
+    "e-commerce",
+    "enterprise",
+    "saas"
   ],
   "author": "V-Try.app Team",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {},
-  "browser_specific_settings": {
-    "gecko": {
-      "strict_min_version": "109.0"
-    }
+  "workspaces": [
+    "api",
+    "website",
+    "extension",
+    "shared"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Davide9292/v-try.app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Davide9292/v-try.app/issues"
+  },
+  "homepage": "https://v-try.app",
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

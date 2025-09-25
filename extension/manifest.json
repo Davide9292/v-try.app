@@ -1,28 +1,39 @@
 {
   "manifest_version": 3,
-  "name": "MirrorMe - AI Virtual Try-On",
-  "version": "1.0.0",
-  "description": "Combine your image with any web photo using Gemini AI for virtual try-on",
+  "name": "V-Try.app - AI Virtual Try-On",
+  "version": "2.0.0",
+  "description": "AI-powered virtual try-on with user authentication, feed management, and video generation",
   
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "identity",
+    "windows"
   ],
   
   "host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
+    "https://api.kie.ai/*",
+    "https://api.v-try.app/*",
+    "https://v-try.app/*"
   ],
   
   "action": {
     "default_popup": "popup.html",
-    "default_title": "MirrorMe"
+    "default_title": "V-Try.app"
   },
   
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": [
+        "shared/constants.js",
+        "shared/types.js",
+        "services/auth.js",
+        "services/ai.js",
+        "services/feed.js",
+        "content.js"
+      ],
       "css": ["content.css"]
     }
   ],
@@ -33,7 +44,12 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "assets/*"],
+      "resources": [
+        "icons/*", 
+        "assets/*",
+        "auth-popup.html",
+        "feed-panel.html"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
@@ -42,5 +58,12 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+
+  "externally_connectable": {
+    "matches": [
+      "https://v-try.app/*",
+      "https://auth.v-try.app/*"
+    ]
   }
 }

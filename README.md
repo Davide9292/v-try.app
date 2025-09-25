@@ -1,6 +1,6 @@
-# V-Try.app - AI Virtual Try-On Platform
+# V-Try.app - Enterprise AI Virtual Try-On Platform
 
-A complete platform for virtually trying on products using advanced Google Gemini artificial intelligence.
+A complete enterprise-grade platform for virtually trying on products using advanced KIE AI technology with Nano Banana and Veo3 models.
 
 ## 🌟 Project Overview
 
