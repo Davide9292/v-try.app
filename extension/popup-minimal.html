@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V-Try.app</title>
+  <style>
+    /* Minimal Design System - Pure CSS */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      height: 600px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #FFFFFF;
+      color: #000000;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      padding: 24px;
+      border-bottom: 1px solid #E9ECEF;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: #6C757D;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .section {
+      padding: 16px 24px;
+      border-bottom: 1px solid #F8F9FA;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      background: #000000;
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      font-family: inherit;
+    }
+
+    .btn:hover {
+      background: #212529;
+    }
+
+    .btn-secondary {
+      background: #FFFFFF;
+      color: #000000;
+      border: 1px solid #DEE2E6;
+    }
+
+    .btn-secondary:hover {
+      background: #F8F9FA;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    /* Input */
+    .input {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #DEE2E6;
+      background: #FFFFFF;
+      color: #000000;
+      font-family: inherit;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: #000000;
+    }
+
+    .input::placeholder {
+      color: #ADB5BD;
+    }
+
+    /* Options */
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #E9ECEF;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .option:hover {
+      background: #F8F9FA;
+    }
+
+    .option.selected {
+      background: #F8F9FA;
+      border-color: #000000;
+    }
+
+    .option input[type="radio"] {
+      margin-right: 12px;
+      accent-color: #000000;
+    }
+
+    .option-text {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .option-cost {
+      font-size: 12px;
+      color: #6C757D;
+    }
+
+    /* Feed Items */
+    .feed-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #F8F9FA;
+    }
+
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+
+    .feed-thumb {
+      width: 48px;
+      height: 48px;
+      background: #F8F9FA;
+      border: 1px solid #E9ECEF;
+      flex-shrink: 0;
+    }
+
+    .feed-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .feed-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feed-meta {
+      font-size: 11px;
+      color: #6C757D;
+    }
+
+    /* Status */
+    .status {
+      padding: 8px 12px;
+      font-size: 12px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .status-success {
+      background: #F8F9FA;
+      color: #000000;
+    }
+
+    .status-error {
+      background: #F8F9FA;
+      color: #000000;
+    }
+
+    /* Navigation */
+    .nav {
+      display: flex;
+      border-bottom: 1px solid #E9ECEF;
+    }
+
+    .nav-item {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #6C757D;
+      transition: all 0.15s;
+    }
+
+    .nav-item.active {
+      color: #000000;
+      background: #F8F9FA;
+    }
+
+    .nav-item:hover {
+      background: #F8F9FA;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: #6C757D;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #E9ECEF;
+      border-top: 2px solid #000000;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty {
+      text-align: center;
+      padding: 40px 24px;
+      color: #6C757D;
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #000000;
+    }
+
+    .empty-text {
+      font-size: 12px;
+    }
+
+    /* User Info */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-bottom: 1px solid #E9ECEF;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background: #000000;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .user-details {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .user-tier {
+      font-size: 11px;
+      color: #6C757D;
+      text-transform: uppercase;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: #F8F9FA;
+    }
+
+    /* Usage Stats */
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      padding: 16px 0;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-number {
+      display: block;
+      font-size: 18px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6C757D;
+      text-transform: uppercase;
+    }
+
+    /* Instructions */
+    .instructions {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+
+    .instructions li {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .instructions li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      background: #000000;
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hide/Show States */
+    .hidden {
+      display: none !important;
+    }
+
+    .visible {
+      display: block !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Loading State -->
+    <div id="loading-state" class="loading">
+      <div class="spinner"></div>
+      <span>Loading...</span>
+    </div>
+
+    <!-- Auth Required State -->
+    <div id="auth-state" class="hidden">
+      <div class="header">
+        <div class="logo">V-Try.app</div>
+        <div class="tagline">AI Virtual Try-On</div>
+      </div>
+      
+      <div class="content">
+        <div class="section">
+          <div class="section-title">Sign in required</div>
+          <p style="font-size: 12px; color: #6C757D; margin-bottom: 16px;">
+            Create an account to start trying on products with AI
+          </p>
+          <button class="btn" id="login-btn">Sign In</button>
+          <button class="btn btn-secondary" id="signup-btn" style="margin-top: 8px;">Create Account</button>
+        </div>
+
+        <div class="section">
+          <div class="section-title">What you get</div>
+          <ul style="font-size: 12px; color: #6C757D; list-style: none;">
+            <li style="margin-bottom: 4px;">• Unlimited AI try-ons</li>
+            <li style="margin-bottom: 4px;">• Personal feed & history</li>
+            <li style="margin-bottom: 4px;">• Video generation</li>
+            <li style="margin-bottom: 4px;">• Product link tracking</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Setup State -->
+    <div id="setup-state" class="hidden">
+      <div class="header">
+        <div class="logo">Setup Profile</div>
+        <div class="tagline">Upload your images</div>
+      </div>
+      
+      <div class="content">
+        <div class="section">
+          <div class="section-title">Face Image</div>
+          <input type="file" id="face-input" accept="image/*" style="display: none;">
+          <div id="face-preview" class="feed-thumb" style="width: 100%; height: 120px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6C757D;">
+            Click to upload
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('face-input').click()">
+            Choose Face Image
+          </button>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Body Image</div>
+          <input type="file" id="body-input" accept="image/*" style="display: none;">
+          <div id="body-preview" class="feed-thumb" style="width: 100%; height: 120px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6C757D;">
+            Click to upload
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('body-input').click()">
+            Choose Body Image
+          </button>
+        </div>
+
+        <div class="section">
+          <button class="btn" id="complete-setup" disabled>Complete Setup</button>
+          <div class="status" id="setup-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App State -->
+    <div id="main-state" class="hidden">
+      <!-- User Info -->
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">U</div>
+        <div class="user-details">
+          <div class="user-name" id="user-name">Username</div>
+          <div class="user-tier" id="user-tier">Free</div>
+        </div>
+        <div class="user-actions">
+          <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+          <button class="icon-btn" id="logout-btn" title="Logout">↗</button>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="nav">
+        <button class="nav-item active" data-tab="try-on">Try-On</button>
+        <button class="nav-item" data-tab="feed">Feed</button>
+        <button class="nav-item" data-tab="collections">Collections</button>
+      </div>
+
+      <!-- Try-On Tab -->
+      <div id="try-on-tab" class="tab-content active">
+        <div class="section">
+          <div class="section-title">Generation Type</div>
+          <div class="options">
+            <label class="option selected">
+              <input type="radio" name="type" value="image" checked>
+              <span class="option-text">Image</span>
+              <span class="option-cost">$0.05</span>
+            </label>
+            <label class="option">
+              <input type="radio" name="type" value="video">
+              <span class="option-text">Video</span>
+              <span class="option-cost">$0.25</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Style</div>
+          <select class="input">
+            <option value="realistic">Realistic</option>
+            <option value="fashion">Fashion</option>
+            <option value="artistic">Artistic</option>
+            <option value="lifestyle">Lifestyle</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Usage Today</div>
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-number" id="images-used">0</span>
+              <span class="stat-label">Images</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number" id="videos-used">0</span>
+              <span class="stat-label">Videos</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number" id="credits-left">10</span>
+              <span class="stat-label">Remaining</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">How to use</div>
+          <ol class="instructions">
+            <li>Go to any website</li>
+            <li>Hover over a product image</li>
+            <li>Click the V-Try badge</li>
+            <li>Wait for AI generation</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Feed Tab -->
+      <div id="feed-tab" class="tab-content">
+        <div class="section">
+          <input type="search" class="input" placeholder="Search your try-ons..." id="feed-search">
+        </div>
+        
+        <div class="content" style="padding: 0;">
+          <div id="feed-loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Loading feed...</span>
+          </div>
+          
+          <div id="feed-empty" class="empty hidden">
+            <div class="empty-title">No try-ons yet</div>
+            <div class="empty-text">Start trying on products to see them here</div>
+          </div>
+          
+          <div id="feed-results" class="section"></div>
+        </div>
+      </div>
+
+      <!-- Collections Tab -->
+      <div id="collections-tab" class="tab-content">
+        <div class="section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="section-title" style="margin-bottom: 0;">Collections</div>
+            <button class="btn btn-secondary btn-sm" id="new-collection">New</button>
+          </div>
+          
+          <div id="collections-loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Loading...</span>
+          </div>
+          
+          <div id="collections-empty" class="empty hidden">
+            <div class="empty-title">No collections</div>
+            <div class="empty-text">Create collections to organize your try-ons</div>
+          </div>
+          
+          <div id="collections-results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup-minimal.js"></script>
+</body>
+</html>
