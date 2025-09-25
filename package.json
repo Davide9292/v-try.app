@@ -1,0 +1,26 @@
+{
+  "name": "mirrorme-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension that combines your image with any web image using Gemini AI",
+  "main": "background.js",
+  "scripts": {
+    "build": "echo 'Extension ready for loading in Chrome'",
+    "test": "echo 'No tests configured yet'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ai",
+    "image-generation",
+    "gemini",
+    "photo-editing"
+  ],
+  "author": "MirrorMe Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "browser_specific_settings": {
+    "gecko": {
+      "strict_min_version": "109.0"
+    }
+  }
+}
