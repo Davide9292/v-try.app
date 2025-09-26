@@ -8,21 +8,21 @@ WORKDIR /app
 COPY api/package*.json ./
 COPY api/tsconfig.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (needed for build)
+RUN npm ci
 
 # Copy source code and schema from api directory
 COPY api/src/ ./src/
 COPY api/prisma/ ./prisma/
-
-# Verify prisma files exist
-RUN ls -la prisma/ && cat prisma/schema.prisma | head -5
 
 # Generate Prisma client
 RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
