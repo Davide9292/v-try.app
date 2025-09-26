@@ -197,12 +197,20 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
+      // Enhanced error logging
+      console.error('🔥 Login error details:', {
+        message: error?.message || 'Unknown error',
+        stack: error?.stack || 'No stack trace',
+        name: error?.name || 'Unknown error type',
+        error: error
+      })
+      
       fastify.log.error('Login error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred',
+          message: error?.message || 'An unexpected error occurred',
         },
       })
     }

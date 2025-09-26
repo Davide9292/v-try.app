@@ -81,6 +81,13 @@ class VTryApp {
   // Authentication Methods
   async checkAuth() {
     try {
+      // Use the auth service instead of custom implementation
+      if (window.vtryAuth) {
+        await window.vtryAuth.init()
+        return window.vtryAuth.isAuthenticated()
+      }
+      
+      // Fallback to manual check
       const tokens = await this.getStoredTokens()
       if (!tokens?.accessToken) return false
       
@@ -249,15 +256,32 @@ class VTryApp {
 
   // Profile Setup Methods
   async handleImageUpload(event, type) {
+    console.log('🖼️ Image upload started:', type)
     const file = event.target.files[0]
-    if (!file) return
+    if (!file) {
+      console.log('❌ No file selected')
+      return
+    }
+
+    console.log('📁 File selected:', file.name, file.size, file.type)
 
     try {
       // Validate file
-      if (!this.validateImageFile(file)) return
+      if (!this.validateImageFile(file)) {
+        console.log('❌ File validation failed')
+        return
+      }
+
+      console.log('✅ File validation passed')
+      
+      // Show status
+      const statusEl = document.getElementById('setup-status')
+      statusEl.textContent = `Processing ${type} image...`
+      statusEl.className = 'status'
 
       // Convert to base64
       const imageData = await this.fileToBase64(file)
+      console.log('✅ Image converted to base64, length:', imageData.length)
       
       // Show preview
       this.showImagePreview(imageData, type)
@@ -265,15 +289,22 @@ class VTryApp {
       // Store temporarily
       if (type === 'face') {
         this.tempFaceImage = imageData
+        console.log('✅ Face image stored')
       } else {
         this.tempBodyImage = imageData
+        console.log('✅ Body image stored')
       }
+
+      statusEl.textContent = `${type} image uploaded successfully!`
+      statusEl.className = 'status status-success'
       
       this.checkSetupComplete()
       
     } catch (error) {
       console.error('Image upload failed:', error)
-      this.showError('Failed to process image')
+      const statusEl = document.getElementById('setup-status')
+      statusEl.textContent = `Failed to process ${type} image`
+      statusEl.className = 'status status-error'
     }
   }
 
@@ -359,6 +390,13 @@ class VTryApp {
 
   async getCurrentUser() {
     try {
+      // Use the auth service if available
+      if (window.vtryAuth && window.vtryAuth.isAuthenticated()) {
+        const user = await window.vtryAuth.getCurrentUserProfile()
+        return user
+      }
+      
+      // Fallback to manual API call
       const tokens = await this.getStoredTokens()
       
       const response = await fetch(`${this.apiBaseUrl}/api/user/profile`, {
