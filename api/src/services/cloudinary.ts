@@ -42,16 +42,13 @@ export class CloudinaryService {
         folder: `vtry-app/${folder}`,
         public_id: filename,
         resource_type: 'image',
-        format: 'auto', // Auto-select best format (WebP, AVIF, etc.)
         quality: 'auto:good', // Auto-optimize quality
-        fetch_format: 'auto', // Auto-select best format for delivery
-        flags: 'progressive', // Progressive JPEG
         transformation: [
           {
             width: 1024,
             height: 1024,
             crop: 'limit', // Don't upscale, only downscale if needed
-            quality: 'auto:good',
+            quality: 80,
           }
         ],
       })
