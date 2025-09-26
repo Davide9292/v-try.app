@@ -3,6 +3,7 @@ import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { checkDailyLimits } from '../middleware/auth'
+import { KIEAIService } from '../services/kie-ai'
 
 // Validation schemas
 const generateSchema = z.object({
@@ -46,42 +47,130 @@ interface StatusRequest extends AuthenticatedRequest {
 }
 
 const aiRoutes: FastifyPluginAsync = async (fastify) => {
-  // Mock KIE AI service for development
-  const mockKIEAI = {
+  // Initialize KIE AI service with API key from config
+  const kieAI = new KIEAIService(fastify.config.kieApiKey)
+  
+  // Real KIE AI integration
+  const aiService = {
     async generateImage(request: any): Promise<any> {
-      const jobId = request.jobId // Use the jobId passed from the main function
+      const jobId = request.jobId
       
-      console.log(`🤖 Mock AI: Starting generation for job ${jobId}`)
+      console.log(`🤖 KIE AI: Starting generation for job ${jobId}`)
+      console.log(`🎯 Using model: ${request.type === 'video' ? 'Veo3' : 'Nano Banana'}`)
       
-      // Simulate processing time - use setImmediate to ensure it runs
-      const completeJob = async () => {
+      try {
+        // Call real KIE AI service
+        const kieRequest = {
+          type: request.type,
+          userFaceImage: request.userFaceImage,
+          userBodyImage: request.userBodyImage,
+          targetImage: request.targetImage,
+          style: request.style,
+          parameters: request.parameters
+        }
+        
+        console.log(`📡 Making KIE AI API call...`)
+        const kieResponse = await kieAI.generateImage(kieRequest)
+        
+        console.log(`📡 KIE AI Response:`, kieResponse)
+        
+        // Update database with KIE AI job ID and initial status
+        await fastify.prisma.tryOnResult.update({
+          where: { jobId },
+          data: {
+            status: kieResponse.status.toUpperCase() as any,
+            externalJobId: kieResponse.jobId, // Store KIE AI job ID
+          },
+        })
+        
+        // Start polling KIE AI for completion
+        this.pollKIEAIStatus(jobId, kieResponse.jobId)
+        
+        return {
+          jobId,
+          status: kieResponse.status,
+          estimatedTime: 30 // KIE AI typical processing time
+        }
+        
+      } catch (error) {
+        console.error(`❌ KIE AI: Failed to start generation for job ${jobId}:`, error)
+        
+        // Update job status to failed
+        await fastify.prisma.tryOnResult.update({
+          where: { jobId },
+          data: {
+            status: 'FAILED',
+            error: (error as any)?.message || 'Failed to start KIE AI generation',
+          },
+        })
+        
+        throw error
+      }
+    },
+    
+    async pollKIEAIStatus(jobId: string, kieJobId: string) {
+      console.log(`🔄 Starting KIE AI status polling for job ${jobId} (KIE: ${kieJobId})`)
+      
+      const poll = async () => {
         try {
-          console.log(`🤖 Mock AI: Completing job ${jobId}`)
+          const status = await kieAI.getJobStatus(kieJobId)
+          console.log(`📊 KIE AI Status for ${jobId}:`, status)
           
-          // Update job status to completed
+          // Update our database with the latest status
+          const updateData: any = {
+            status: status.status.toUpperCase(),
+          }
+          
+          if (status.resultUrl) {
+            updateData.generatedImageUrl = status.resultUrl
+          }
+          
+          if (status.processingTime) {
+            updateData.processingTime = status.processingTime
+          }
+          
+          if (status.cost) {
+            updateData.cost = status.cost
+          }
+          
+          if (status.quality) {
+            updateData.quality = status.quality
+          }
+          
+          if (status.error) {
+            updateData.error = status.error
+          }
+          
+          await fastify.prisma.tryOnResult.update({
+            where: { jobId },
+            data: updateData,
+          })
+          
+          // If completed or failed, stop polling
+          if (status.status === 'completed' || status.status === 'failed') {
+            console.log(`✅ KIE AI job ${jobId} finished with status: ${status.status}`)
+            return
+          }
+          
+          // Continue polling every 3 seconds
+          setTimeout(poll, 3000)
+          
+        } catch (error) {
+          console.error(`❌ KIE AI polling error for job ${jobId}:`, error)
+          
+          // Mark as failed if polling fails
           await fastify.prisma.tryOnResult.update({
             where: { jobId },
             data: {
-              status: 'COMPLETED',
-              generatedImageUrl: `https://cdn.v-try.app/results/${jobId}.jpg`,
-              processingTime: Math.floor(Math.random() * 30000) + 5000, // 5-35 seconds
-              cost: request.type === 'video' ? 0.25 : 0.05,
-              quality: Math.random() * 0.3 + 0.7, // 0.7-1.0
+              status: 'FAILED',
+              error: 'Failed to check generation status',
             },
           })
-          
-          console.log(`✅ Mock AI: Job ${jobId} completed successfully`)
-          
-          // Notify via WebSocket (if implemented)
-          // wsService.notifyUser(request.userId, 'generation_complete', { jobId })
-        } catch (error) {
-          console.error(`❌ Mock AI: Generation failed for job ${jobId}:`, error)
         }
       }
       
-      setTimeout(completeJob, 3000) // Fixed 3 seconds for testing
-      
-      return { jobId, status: 'queued' }
+      // Start polling after 2 seconds
+      setTimeout(poll, 2000)
     },
 
     async getStatus(jobId: string): Promise<any> {
@@ -275,7 +364,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
       // Start AI generation (mock for now)
-      const aiResponse = await mockKIEAI.generateImage({
+      const aiResponse = await aiService.generateImage({
         type: generateData.type,
         userFaceImage: user.faceImageUrl,
         userBodyImage: user.bodyImageUrl,
@@ -362,7 +451,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       console.log(`✅ Job ${jobId} found, current status: ${tryOnResult.status}`)
 
       // Get status from AI service
-      const status = await mockKIEAI.getStatus(jobId)
+      const status = await aiService.getStatus(jobId)
       console.log(`📊 Returning status for job ${jobId}:`, status)
 
       reply.send({
@@ -408,8 +497,10 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Cancel with AI service
-      await mockKIEAI.cancelGeneration(jobId)
+      // Cancel with KIE AI service
+      if (tryOnResult.externalJobId) {
+        await kieAI.cancelGeneration(tryOnResult.externalJobId)
+      }
 
       reply.send({
         success: true,

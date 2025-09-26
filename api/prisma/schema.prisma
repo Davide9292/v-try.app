@@ -72,6 +72,7 @@ model TryOnResult {
   
   // Generation Details
   jobId                String?          @unique
+  externalJobId        String?          // KIE AI job ID
   generationType       GenerationType
   status               GenerationStatus @default(QUEUED)
   
