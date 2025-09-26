@@ -777,9 +777,16 @@ class VTryContentScript {
     originalImg.style.transition = 'opacity 0.3s ease'
     originalImg.style.opacity = '0.5'
     
-    // Force cache busting by adding timestamp
-    const cacheBustedUrl = resultUrl + (resultUrl.includes('?') ? '&' : '?') + 't=' + Date.now()
-    console.log('🔄 Using cache-busted URL:', cacheBustedUrl)
+    // Force cache busting (but not for base64 data URLs)
+    let cacheBustedUrl = resultUrl
+    if (resultUrl.startsWith('data:')) {
+      // Base64 data URLs don't support query parameters, so we use the URL as-is
+      console.log('🔄 Using base64 data URL (no cache busting needed):', resultUrl.substring(0, 50) + '...')
+    } else {
+      // HTTP URLs can have cache busting parameters
+      cacheBustedUrl = resultUrl + (resultUrl.includes('?') ? '&' : '?') + 't=' + Date.now()
+      console.log('🔄 Using cache-busted HTTP URL:', cacheBustedUrl)
+    }
     
     // Replace the image source
     originalImg.onload = () => {
@@ -794,23 +801,41 @@ class VTryContentScript {
       console.log('📸 Current image src after load:', currentSrc)
       console.log('📸 Expected src:', cacheBustedUrl)
       
-      if (currentSrc.includes(cacheBustedUrl.split('?')[0])) {
+      // Verify image replacement success (handle both HTTP URLs and base64 data URLs)
+      let replacementSuccessful = false
+      if (resultUrl.startsWith('data:')) {
+        // For base64 URLs, compare the first part of the data
+        replacementSuccessful = currentSrc.startsWith('data:') && currentSrc.substring(0, 100) === resultUrl.substring(0, 100)
+      } else {
+        // For HTTP URLs, compare the base URL
+        replacementSuccessful = currentSrc.includes(cacheBustedUrl.split('?')[0])
+      }
+      
+      if (replacementSuccessful) {
         console.log('✅ Image replacement verified successful')
         this.showToast('Try-on complete! Image replaced successfully.', 'success')
         this.addUndoOverlay(originalImg, originalSrc)
       } else {
         console.warn('⚠️ Image src mismatch after load, trying alternative approach')
-        this.forceImageReplacement(originalImg, cacheBustedUrl, originalSrc)
+        this.forceImageReplacement(originalImg, resultUrl, originalSrc)
       }
     }
     
     originalImg.onerror = (e) => {
       console.error('❌ Failed to load generated image:', e)
       console.error('❌ Failed URL:', cacheBustedUrl)
-      console.error('❌ Reverting to original:', originalSrc)
-      originalImg.src = originalSrc
-      originalImg.style.opacity = '1'
-      this.showToast('Failed to load generated image', 'error')
+      console.error('❌ Original result URL:', resultUrl)
+      
+      // Try the alternative approach before reverting
+      if (resultUrl !== cacheBustedUrl) {
+        console.log('🔄 Trying original URL without cache busting...')
+        this.forceImageReplacement(originalImg, resultUrl, originalSrc)
+      } else {
+        console.error('❌ Reverting to original:', originalSrc)
+        originalImg.src = originalSrc
+        originalImg.style.opacity = '1'
+        this.showToast('Failed to load generated image', 'error')
+      }
     }
     
     // Set the new source with cache busting
