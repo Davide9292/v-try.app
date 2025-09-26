@@ -61,15 +61,15 @@ class VTryApp {
   }
 
   setupEventListeners() {
+    console.log('🎧 Setting up event listeners...')
+    
     // Auth
     document.getElementById('login-btn')?.addEventListener('click', () => this.handleAuth('login'))
     document.getElementById('signup-btn')?.addEventListener('click', () => this.handleAuth('signup'))
     document.getElementById('logout-btn')?.addEventListener('click', () => this.handleLogout())
     
-    // Setup
-    document.getElementById('face-input')?.addEventListener('change', (e) => this.handleImageUpload(e, 'face'))
-    document.getElementById('body-input')?.addEventListener('change', (e) => this.handleImageUpload(e, 'body'))
-    document.getElementById('complete-setup')?.addEventListener('click', () => this.completeSetup())
+    // Setup - Add event listeners dynamically when setup state is shown
+    this.setupImageUploadListeners()
     
     // Navigation
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -100,25 +100,99 @@ class VTryApp {
     })
   }
 
+  setupImageUploadListeners() {
+    console.log('📷 Setting up image upload listeners...')
+    
+    // Face image upload
+    const faceInput = document.getElementById('face-input')
+    const facePreview = document.getElementById('face-preview')
+    const faceButton = document.getElementById('face-button')
+    
+    if (faceInput) {
+      // Remove existing listeners first
+      faceInput.removeEventListener('change', this.handleFaceUpload)
+      this.handleFaceUpload = (e) => {
+        console.log('📷 Face input changed')
+        this.handleImageUpload(e, 'face')
+      }
+      faceInput.addEventListener('change', this.handleFaceUpload)
+    }
+    
+    if (facePreview) {
+      facePreview.removeEventListener('click', this.handleFacePreviewClick)
+      this.handleFacePreviewClick = () => {
+        console.log('📷 Face preview clicked')
+        document.getElementById('face-input')?.click()
+      }
+      facePreview.addEventListener('click', this.handleFacePreviewClick)
+    }
+    
+    if (faceButton) {
+      faceButton.removeEventListener('click', this.handleFaceButtonClick)
+      this.handleFaceButtonClick = (e) => {
+        e.preventDefault()
+        console.log('📷 Face button clicked')
+        document.getElementById('face-input')?.click()
+      }
+      faceButton.addEventListener('click', this.handleFaceButtonClick)
+    }
+    
+    // Body image upload
+    const bodyInput = document.getElementById('body-input')
+    const bodyPreview = document.getElementById('body-preview')
+    const bodyButton = document.getElementById('body-button')
+    
+    if (bodyInput) {
+      bodyInput.removeEventListener('change', this.handleBodyUpload)
+      this.handleBodyUpload = (e) => {
+        console.log('📷 Body input changed')
+        this.handleImageUpload(e, 'body')
+      }
+      bodyInput.addEventListener('change', this.handleBodyUpload)
+    }
+    
+    if (bodyPreview) {
+      bodyPreview.removeEventListener('click', this.handleBodyPreviewClick)
+      this.handleBodyPreviewClick = () => {
+        console.log('📷 Body preview clicked')
+        document.getElementById('body-input')?.click()
+      }
+      bodyPreview.addEventListener('click', this.handleBodyPreviewClick)
+    }
+    
+    if (bodyButton) {
+      bodyButton.removeEventListener('click', this.handleBodyButtonClick)
+      this.handleBodyButtonClick = (e) => {
+        e.preventDefault()
+        console.log('📷 Body button clicked')
+        document.getElementById('body-input')?.click()
+      }
+      bodyButton.addEventListener('click', this.handleBodyButtonClick)
+    }
+    
+    // Complete setup button
+    const completeBtn = document.getElementById('complete-setup')
+    if (completeBtn) {
+      completeBtn.removeEventListener('click', this.handleCompleteSetup)
+      this.handleCompleteSetup = () => {
+        console.log('✅ Complete setup clicked')
+        this.completeSetup()
+      }
+      completeBtn.addEventListener('click', this.handleCompleteSetup)
+    }
+  }
+
   // Authentication Methods
   async checkAuth() {
     try {
-      // Use the auth service instead of custom implementation
-      if (window.vtryAuth) {
-        console.log('🔧 Using auth service for check')
-        await window.vtryAuth.init()
-        const isAuth = window.vtryAuth.isAuthenticated()
-        console.log('🔐 Auth service result:', isAuth)
-        return isAuth
-      }
+      console.log('🔧 Starting auth check...')
       
-      // Fallback to manual check
-      console.log('🔧 Using fallback auth check')
+      // First check stored tokens directly
       const tokens = await this.getStoredTokens()
-      console.log('🎫 Stored tokens:', tokens ? 'Found' : 'Not found')
+      console.log('🎫 Stored tokens check:', tokens ? 'Found tokens' : 'No tokens')
       
       if (!tokens?.accessToken) {
-        console.log('❌ No access token found')
+        console.log('❌ No access token found in storage')
         return false
       }
       
@@ -131,7 +205,15 @@ class VTryApp {
       })
       
       console.log('🌐 API response status:', response.status, response.ok)
-      return response.ok
+      
+      if (response.ok) {
+        console.log('✅ Token is valid')
+        return true
+      } else {
+        console.log('❌ Token is invalid, clearing storage')
+        await this.clearStoredTokens()
+        return false
+      }
     } catch (error) {
       console.error('❌ Auth check failed:', error)
       return false
@@ -201,20 +283,36 @@ class VTryApp {
     statusEl.className = 'status'
     
     try {
-      let result
-      if (type === 'signup') {
-        result = await window.vtryAuth.signup({ email, password, username })
-      } else {
-        result = await window.vtryAuth.login(email, password)
-      }
+      // Direct API call instead of using auth service
+      const endpoint = type === 'signup' ? '/api/auth/signup' : '/api/auth/login'
+      const body = type === 'signup' 
+        ? { email, password, username }
+        : { email, password }
+      
+      console.log(`🌐 Making ${type} request to:`, `${this.apiBaseUrl}${endpoint}`)
+      
+      const response = await fetch(`${this.apiBaseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+      
+      const result = await response.json()
+      console.log(`🌐 ${type} response:`, result)
       
       if (result.success) {
+        // Store tokens directly
+        await this.storeTokens(result.data.tokens)
+        
         statusEl.textContent = 'Success! Redirecting...'
         statusEl.className = 'status status-success'
         
         // Check if profile is complete
-        if (result.user.faceImageUrl && result.user.bodyImageUrl) {
-          this.showMainApp(result.user)
+        const user = result.data.user
+        if (user.faceImageUrl && user.bodyImageUrl) {
+          this.showMainApp(user)
         } else {
           this.showState('setup-state')
         }
@@ -773,6 +871,7 @@ class VTryApp {
 
   // Utility Methods
   showState(stateId) {
+    console.log('🔄 Switching to state:', stateId)
     const states = ['loading-state', 'auth-state', 'setup-state', 'main-state']
     
     states.forEach(state => {
@@ -781,6 +880,13 @@ class VTryApp {
         element.classList.toggle('hidden', state !== stateId)
       }
     })
+    
+    // Re-setup event listeners when switching to setup state
+    if (stateId === 'setup-state') {
+      setTimeout(() => {
+        this.setupImageUploadListeners()
+      }, 100) // Small delay to ensure DOM is ready
+    }
   }
 
   showLoading() {
