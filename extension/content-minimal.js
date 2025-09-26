@@ -526,15 +526,27 @@ class VTryContentScript {
       // Update progress
       this.updateProgress(25, 'Processing image...')
       
-      // Prepare request payload
+      // Prepare request payload with validation
+      const productUrl = window.location.href
+      const websiteTitle = document.title.trim() || 'Product Page'
+      const websiteDomain = window.location.hostname || 'unknown.com'
+      
+      // Validate URL format
+      let validProductUrl
+      try {
+        validProductUrl = new URL(productUrl).href
+      } catch (e) {
+        validProductUrl = `https://${websiteDomain}/product`
+      }
+      
       const payload = {
         type: preferences.type || 'image',
         targetImage: imageData,
         style: preferences.style || 'realistic',
-        productUrl: window.location.href,
+        productUrl: validProductUrl,
         websiteInfo: {
-          domain: window.location.hostname,
-          title: document.title,
+          domain: websiteDomain,
+          title: websiteTitle,
           description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
           favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href') || document.querySelector('link[rel="shortcut icon"]')?.getAttribute('href') || '',
         },
@@ -561,11 +573,21 @@ class VTryContentScript {
         try {
           const error = await response.json()
           console.error('❌ API error response:', error)
+          console.error('❌ Full error details:', JSON.stringify(error, null, 2))
           
           if (response.status === 401) {
             throw new Error('Please sign in again')
           } else if (response.status === 429) {
             throw new Error('Daily limit exceeded. Upgrade for unlimited tries!')
+          } else if (response.status === 400) {
+            // Handle validation errors and missing user images
+            if (error.error?.code === 'MISSING_USER_IMAGES') {
+              throw new Error('Please upload your face and body images in the extension settings first')
+            } else if (error.error?.message?.includes('validation')) {
+              throw new Error('Invalid request data. Please try again.')
+            } else {
+              throw new Error(error.error?.message || 'Bad request')
+            }
           }
           
           errorMessage = error.error?.message || error.message || 'Generation failed'
