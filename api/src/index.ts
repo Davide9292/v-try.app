@@ -92,6 +92,13 @@ export const prisma = new PrismaClient({
 })
 console.log('✅ Prisma client initialized')
 
+// Debug KIE AI key loading
+console.log('🔑 KIE AI Key debug at startup:', {
+  raw: process.env.KIE_AI_API_KEY ? `${process.env.KIE_AI_API_KEY.substring(0, 10)}...` : 'NOT SET',
+  length: process.env.KIE_AI_API_KEY ? process.env.KIE_AI_API_KEY.length : 0,
+  config: config.kieApiKey ? `${config.kieApiKey.substring(0, 10)}...` : 'NOT SET IN CONFIG'
+})
+
 // Build Fastify server
 const buildServer = async (): Promise<FastifyInstance> => {
   console.log('🚀 Building Fastify server...')

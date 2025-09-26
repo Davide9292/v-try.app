@@ -60,9 +60,17 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       
       try {
         // Check if KIE AI key is available
-        console.log('🔑 KIE AI Key check:', fastify.config.kieApiKey ? 'Key present' : 'No key')
+        console.log('🔑 KIE AI Key check:', fastify.config.kieApiKey ? `Key present (${fastify.config.kieApiKey.substring(0, 10)}...)` : 'No key')
+        console.log('🔑 KIE AI Key length:', fastify.config.kieApiKey ? fastify.config.kieApiKey.length : 0)
+        console.log('🔑 KIE AI Key value check:', {
+          exists: !!fastify.config.kieApiKey,
+          notDefault: fastify.config.kieApiKey !== 'your_actual_kie_ai_key_here',
+          notEmpty: fastify.config.kieApiKey && fastify.config.kieApiKey.trim() !== ''
+        })
+        
         if (!fastify.config.kieApiKey || fastify.config.kieApiKey === 'your_actual_kie_ai_key_here' || fastify.config.kieApiKey.trim() === '') {
           console.log('⚠️ KIE AI key not configured, using fallback approach')
+          console.log('⚠️ Reason: Key is', !fastify.config.kieApiKey ? 'missing' : fastify.config.kieApiKey === 'your_actual_kie_ai_key_here' ? 'default placeholder' : 'empty')
           
           // Fallback: Return the user's image as a "generated" result for now
           const fallbackResponse = {
