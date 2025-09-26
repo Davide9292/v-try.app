@@ -190,32 +190,28 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
 
-    // Simplified and clear prompt based on Gemini API best practices
-    return `Replace the model in the product photo with this person.
+    // Ultra-clear prompt to avoid confusion between user and model images
+    return `You will receive 3 images. Create a new image following these exact instructions:
 
-IMAGES PROVIDED:
-1. Person's face (reference for facial features and head)
-2. Person's body (reference for body proportions and build) 
-3. Product photo (scene to recreate with the person as the model)
+IMAGE 1: A person's FACE ONLY (this is the USER - use this face)
+IMAGE 2: A person's BODY/FULL FIGURE (this is the USER - use this body shape) 
+IMAGE 3: A FASHION/PRODUCT PHOTO with a model wearing clothes (this is the ORIGINAL SCENE to copy)
 
-INSTRUCTIONS:
-Take the person from images 1 and 2, and place them in the exact scene from image 3.
+TASK:
+Take the USER'S face from Image 1 and the USER'S body from Image 2, then place this USER into the exact same scene as Image 3, replacing the original model.
 
-Keep from the product photo:
-- Same background and setting
-- Same pose and body position  
-- Same clothing and styling
-- Same lighting and shadows
-- Same camera angle and composition
+CRITICAL - DO NOT USE:
+- The face of the model in Image 3 (IGNORE this face completely)
+- The body of the model in Image 3 (IGNORE this body, only use as pose reference)
 
-Replace from the product photo:
-- The model's face with the person's face (image 1)
-- The model's body with the person's body proportions (image 2)
-- Adjust clothing fit to match the person's actual size
+CRITICAL - DO USE:
+- The USER'S face from Image 1 (put this face on the final result)
+- The USER'S body proportions from Image 2 (adjust clothes to fit this body)
+- The scene, clothes, pose, background, and lighting from Image 3
+
+The result must show the USER (from images 1 and 2) wearing the clothes in the same scene as Image 3.
 
 Style: ${styleDesc}
-
-The result should look like this person was the original model in the product photoshoot.
 
 ${request.prompt ? `\n\n${request.prompt}` : ''}`
   }
