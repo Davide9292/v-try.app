@@ -1,7 +1,7 @@
 // V-Try.app Shared Constants
 window.VTRY_CONSTANTS = {
   // API Configuration
-  API_BASE_URL: 'https://vtry-app-backend-production.up.railway.app', // Update this with your actual Railway URL
+  API_BASE_URL: 'https://v-tryapp-production.up.railway.app', // Update this with your actual Railway URL
   API_BASE_URL_LOCAL: 'http://localhost:3001',
   WEBSITE_URL: 'https://v-try.app',
   WEBSITE_URL_LOCAL: 'http://localhost:3000',

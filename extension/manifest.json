@@ -16,7 +16,7 @@
     "https://api.kie.ai/*",
     "https://api.v-try.app/*",
     "https://v-try.app/*",
-    "https://vtry-app-backend-production.up.railway.app/*",
+    "https://v-tryapp-production.up.railway.app/*",
     "http://localhost:3001/*",
     "http://localhost:3000/*"
   ],

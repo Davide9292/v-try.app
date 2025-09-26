@@ -3,7 +3,7 @@ class VTryApp {
   constructor() {
     this.currentUser = null
     this.currentTab = 'try-on'
-    this.apiBaseUrl = 'https://api.v-try.app'
+    this.apiBaseUrl = window.VTRY_CONSTANTS?.getApiUrl() || 'https://v-tryapp-production.up.railway.app'
     this.feedResults = []
     this.collections = []
     
@@ -102,31 +102,91 @@ class VTryApp {
     try {
       this.showLoading()
       
-      // Open auth window
-      const authUrl = `${this.apiBaseUrl}/auth/popup?type=${type}&extension=true`
+      // Show inline auth form instead of popup
+      this.showAuthForm(type)
       
-      const authWindow = window.open(authUrl, 'auth', 'width=500,height=700,scrollbars=yes,resizable=yes')
+    } catch (error) {
+      console.error('Auth error:', error)
+      this.showError('Authentication failed')
+    } finally {
+      this.hideLoading()
+    }
+  }
+
+  showAuthForm(type) {
+    const authState = document.getElementById('auth-state')
+    const content = authState.querySelector('.content')
+    
+    const formHtml = type === 'signup' ? `
+      <div class="section">
+        <div class="section-title">Create Account</div>
+        <form id="auth-form">
+          <input type="text" id="username" class="input" placeholder="Username" required style="margin-bottom: 8px;">
+          <input type="email" id="email" class="input" placeholder="Email" required style="margin-bottom: 8px;">
+          <input type="password" id="password" class="input" placeholder="Password" required style="margin-bottom: 16px;">
+          <button type="submit" class="btn">Create Account</button>
+          <button type="button" class="btn btn-secondary" id="back-btn" style="margin-top: 8px;">Back</button>
+        </form>
+        <div class="status" id="auth-status"></div>
+      </div>
+    ` : `
+      <div class="section">
+        <div class="section-title">Sign In</div>
+        <form id="auth-form">
+          <input type="email" id="email" class="input" placeholder="Email" required style="margin-bottom: 8px;">
+          <input type="password" id="password" class="input" placeholder="Password" required style="margin-bottom: 16px;">
+          <button type="submit" class="btn">Sign In</button>
+          <button type="button" class="btn btn-secondary" id="back-btn" style="margin-top: 8px;">Back</button>
+        </form>
+        <div class="status" id="auth-status"></div>
+      </div>
+    `
+    
+    content.innerHTML = formHtml
+    
+    // Setup form handlers
+    document.getElementById('auth-form').addEventListener('submit', (e) => this.submitAuth(e, type))
+    document.getElementById('back-btn').addEventListener('click', () => this.init())
+  }
+
+  async submitAuth(event, type) {
+    event.preventDefault()
+    
+    const email = document.getElementById('email').value
+    const password = document.getElementById('password').value
+    const username = type === 'signup' ? document.getElementById('username').value : null
+    
+    const statusEl = document.getElementById('auth-status')
+    statusEl.textContent = 'Processing...'
+    statusEl.className = 'status'
+    
+    try {
+      let result
+      if (type === 'signup') {
+        result = await window.vtryAuth.signup({ email, password, username })
+      } else {
+        result = await window.vtryAuth.login(email, password)
+      }
       
-      // Listen for auth completion
-      const authResult = await this.waitForAuthResult(authWindow)
-      
-      if (authResult.success) {
-        await this.storeTokens(authResult.tokens)
+      if (result.success) {
+        statusEl.textContent = 'Success! Redirecting...'
+        statusEl.className = 'status status-success'
         
-        if (authResult.user.faceImageUrl && authResult.user.bodyImageUrl) {
-          this.showMainApp(authResult.user)
+        // Check if profile is complete
+        if (result.user.faceImageUrl && result.user.bodyImageUrl) {
+          this.showMainApp(result.user)
         } else {
           this.showState('setup-state')
         }
       } else {
-        throw new Error(authResult.error || 'Authentication failed')
+        statusEl.textContent = result.error?.message || 'Authentication failed'
+        statusEl.className = 'status status-error'
       }
       
     } catch (error) {
       console.error('Auth failed:', error)
-      this.showError('Authentication failed. Please try again.')
-    } finally {
-      this.hideLoading()
+      statusEl.textContent = 'Network error. Please check your connection.'
+      statusEl.className = 'status status-error'
     }
   }
 
