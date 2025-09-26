@@ -45,23 +45,42 @@ const config = {
 }
 
 // Validate required environment variables
+console.log('🔍 Validating environment variables...')
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('PORT:', process.env.PORT)
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'MISSING')
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'MISSING')
+
 const requiredEnvVars = [
   'DATABASE_URL',
-  'JWT_SECRET', 
+  'JWT_SECRET'
+]
+
+// Optional vars that don't crash the app
+const optionalEnvVars = [
   'KIE_AI_API_KEY',
-  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_CLOUD_NAME', 
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET'
 ]
 
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`❌ Missing required environment variable: ${envVar}`)
-    process.exit(1)
-  }
+const missingRequired = requiredEnvVars.filter(envVar => !process.env[envVar])
+const missingOptional = optionalEnvVars.filter(envVar => !process.env[envVar])
+
+if (missingRequired.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingRequired.join(', ')}`)
+  process.exit(1)
 }
 
+if (missingOptional.length > 0) {
+  console.warn(`⚠️  Missing optional environment variables: ${missingOptional.join(', ')}`)
+  console.warn('   Some features may be disabled')
+}
+
+console.log('✅ Environment validation passed')
+
 // Initialize Prisma client
+console.log('🗃️  Initializing Prisma client...')
 export const prisma = new PrismaClient({
   log: config.nodeEnv === 'development' ? ['query', 'error'] : ['error'],
   datasources: {
@@ -70,9 +89,11 @@ export const prisma = new PrismaClient({
     },
   },
 })
+console.log('✅ Prisma client initialized')
 
 // Build Fastify server
 const buildServer = async (): Promise<FastifyInstance> => {
+  console.log('🚀 Building Fastify server...')
   const server = Fastify({
     logger: {
       level: config.nodeEnv === 'production' ? 'warn' : 'info',
@@ -187,8 +208,9 @@ const start = async () => {
     console.log('🚀 Starting V-Try.app API Server...')
     
     // Connect to database
+    console.log('🔌 Connecting to database...')
     await prisma.$connect()
-    console.log('✅ Database connected')
+    console.log('✅ Database connected successfully')
 
     // Build and start server
     const server = await buildServer()
