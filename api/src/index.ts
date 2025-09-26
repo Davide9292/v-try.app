@@ -147,7 +147,7 @@ const buildServer = async (): Promise<FastifyInstance> => {
     secret: config.jwtSecret,
     sign: {
       algorithm: 'HS256',
-      expiresIn: '15m',
+        expiresIn: '30d', // 30 days for long-term sessions
     },
     verify: {
       algorithms: ['HS256'],

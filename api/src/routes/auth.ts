@@ -68,7 +68,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         sessionId,
         type: 'access' 
       },
-      { expiresIn: '15m' }
+      { expiresIn: '30d' } // 30 days for long-term sessions
     )
 
     const refreshToken = await fastify.jwt.sign(
@@ -137,16 +137,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Check if email is verified
-      if (!user.emailVerified) {
-        return reply.code(403).send({
-          success: false,
-          error: {
-            code: 'EMAIL_NOT_VERIFIED',
-            message: 'Please verify your email address before logging in',
-          },
-        })
-      }
+      // Email verification disabled for light authentication
+      // if (!user.emailVerified) {
+      //   return reply.code(403).send({
+      //     success: false,
+      //     error: {
+      //       code: 'EMAIL_NOT_VERIFIED',
+      //       message: 'Please verify your email address before logging in',
+      //     },
+      //   })
+      // }
 
       // Create session
       const sessionId = nanoid()
@@ -158,7 +158,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           userId: user.id,
           token: accessToken,
           refreshToken,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         },
       })
 
@@ -178,7 +178,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           tokens: {
             accessToken,
             refreshToken,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             tokenType: 'Bearer',
           },
           isNewUser: false,
@@ -247,7 +247,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           firstName,
           lastName,
           passwordHash,
-          emailVerified: false, // In production, require email verification
+          emailVerified: true, // Auto-verify for light authentication
           subscription: 'FREE',
           preferences: {
             defaultGenerationType: 'image',
@@ -282,7 +282,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           userId: user.id,
           token: accessToken,
           refreshToken,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         },
       })
 
@@ -305,7 +305,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           tokens: {
             accessToken,
             refreshToken,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             tokenType: 'Bearer',
           },
           isNewUser: true,
@@ -382,7 +382,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         data: {
           token: accessToken,
           refreshToken: newRefreshToken,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           lastUsedAt: new Date(),
         },
       })
@@ -392,7 +392,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         data: {
           accessToken,
           refreshToken: newRefreshToken,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           tokenType: 'Bearer',
         },
       })
