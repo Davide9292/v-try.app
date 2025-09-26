@@ -11,7 +11,7 @@ COPY tsconfig.json ./
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy source code
+# Copy source code and schema
 COPY src/ ./src/
 COPY prisma/ ./prisma/
 

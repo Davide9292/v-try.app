@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Development files
+.env
+.env.*
+*.log
+
+# Build outputs
+dist
+coverage
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs
+
+# Tests
+tests
+__tests__
+*.test.ts
+*.spec.ts
