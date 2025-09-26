@@ -209,7 +209,7 @@ export class KIEAIService {
 
       return {
         jobId: taskId,
-        status: mappedStatus,
+        status: mappedStatus as 'queued' | 'processing' | 'completed' | 'failed',
         resultUrl: resultUrls[0] || undefined, // First result URL
         processingTime: data.costTime,
         cost: 0.05, // Estimated cost
