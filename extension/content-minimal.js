@@ -2,7 +2,7 @@
 class VTryContentScript {
   constructor() {
     this.isProcessing = false
-    this.apiBaseUrl = 'https://api.v-try.app'
+    this.apiBaseUrl = window.VTRY_CONSTANTS?.getApiUrl() || 'https://v-tryapp-production.up.railway.app'
     this.currentBadge = null
     this.currentModal = null
     
@@ -511,7 +511,7 @@ class VTryContentScript {
       // Get user tokens
       const tokens = await this.getStoredTokens()
       if (!tokens?.accessToken) {
-        throw new Error('Not authenticated')
+        throw new Error('Please sign in to use V-Try.app')
       }
       
       // Convert image to base64
@@ -526,7 +526,7 @@ class VTryContentScript {
       // Update progress
       this.updateProgress(25, 'Processing image...')
       
-      // Start generation
+      // Start generation with enhanced payload
       const response = await fetch(`${this.apiBaseUrl}/api/ai/generate`, {
         method: 'POST',
         headers: {
@@ -541,30 +541,46 @@ class VTryContentScript {
           websiteInfo: {
             domain: window.location.hostname,
             title: document.title,
+            url: window.location.href,
+          },
+          productInfo: {
+            title: this.extractProductTitle(img),
+            category: this.detectProductCategory(img),
           },
         }),
       })
       
       if (!response.ok) {
         const error = await response.json()
+        if (response.status === 401) {
+          throw new Error('Please sign in again')
+        } else if (response.status === 429) {
+          throw new Error('Daily limit exceeded. Upgrade for unlimited tries!')
+        }
         throw new Error(error.error?.message || 'Generation failed')
       }
       
       const result = await response.json()
       
-      // Update progress
-      this.updateProgress(50, 'AI is working...')
-      
-      // Poll for completion
-      await this.pollGenerationStatus(result.jobId, tokens.accessToken)
+      if (result.success) {
+        // Update progress
+        this.updateProgress(50, 'AI is working...')
+        
+        // Poll for completion with real-time updates
+        await this.pollGenerationStatus(result.data.jobId, tokens.accessToken)
+      } else {
+        throw new Error(result.error?.message || 'Failed to start generation')
+      }
       
     } catch (error) {
       console.error('Generation failed:', error)
       this.updateProgress(0, `Error: ${error.message}`)
       
+      // Show error for longer for important messages
+      const isImportantError = error.message.includes('sign in') || error.message.includes('limit')
       setTimeout(() => {
         this.hideGenerationModal()
-      }, 3000)
+      }, isImportantError ? 5000 : 3000)
     }
   }
 
@@ -791,6 +807,45 @@ class VTryContentScript {
         }
       })
     }
+  }
+
+  // Enhanced helper methods
+  extractProductTitle(img) {
+    // Try to extract product title from various sources
+    const sources = [
+      img.alt,
+      img.title,
+      img.getAttribute('data-product-name'),
+      img.getAttribute('data-title'),
+      img.closest('[data-product-name]')?.getAttribute('data-product-name'),
+      img.closest('article')?.querySelector('h1, h2, h3')?.textContent,
+      img.closest('.product')?.querySelector('.title, .name, h1, h2, h3')?.textContent,
+      document.title,
+    ]
+    
+    return sources.find(title => title && title.trim().length > 0)?.trim() || 'Product'
+  }
+
+  detectProductCategory(img) {
+    const context = img.closest('article, .product, .item')?.textContent?.toLowerCase() || 
+                   img.alt?.toLowerCase() || 
+                   document.title.toLowerCase() || ''
+    
+    const categories = {
+      'clothing': ['shirt', 'dress', 'pants', 'jacket', 'sweater', 'hoodie', 'top', 'bottom'],
+      'shoes': ['shoe', 'sneaker', 'boot', 'sandal', 'heel', 'footwear'],
+      'accessories': ['watch', 'bag', 'purse', 'hat', 'belt', 'jewelry', 'necklace', 'bracelet'],
+      'beauty': ['makeup', 'lipstick', 'foundation', 'mascara', 'perfume', 'skincare'],
+      'eyewear': ['glasses', 'sunglasses', 'eyewear'],
+    }
+    
+    for (const [category, keywords] of Object.entries(categories)) {
+      if (keywords.some(keyword => context.includes(keyword))) {
+        return category
+      }
+    }
+    
+    return 'general'
   }
 }
 

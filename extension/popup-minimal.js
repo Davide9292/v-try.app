@@ -455,18 +455,42 @@ class VTryApp {
 
   async loadUsageStats() {
     try {
-      // Mock data for now - replace with API call
-      const stats = {
-        imagesUsed: 3,
-        videosUsed: 1,
-        creditsLeft: this.currentUser.subscription === 'FREE' ? 7 : 97
-      }
+      // Get real usage data from API
+      const response = await fetch(`${this.apiBaseUrl}/api/user/usage`, {
+        headers: {
+          'Authorization': `Bearer ${(await this.getStoredTokens())?.accessToken}`,
+        },
+      })
       
-      document.getElementById('images-used').textContent = stats.imagesUsed
-      document.getElementById('videos-used').textContent = stats.videosUsed
-      document.getElementById('credits-left').textContent = stats.creditsLeft
+      if (response.ok) {
+        const result = await response.json()
+        const usage = result.data.usage
+        const limits = window.VTRY_CONSTANTS.DAILY_LIMITS[this.currentUser.subscription]
+        
+        document.getElementById('images-used').textContent = usage.imagesGenerated || 0
+        document.getElementById('videos-used').textContent = usage.videosGenerated || 0
+        document.getElementById('credits-left').textContent = 
+          this.currentUser.subscription === 'FREE' 
+            ? Math.max(0, limits.images - (usage.imagesGenerated || 0))
+            : '∞'
+      } else {
+        // Fallback to mock data
+        const stats = {
+          imagesUsed: 0,
+          videosUsed: 0,
+          creditsLeft: this.currentUser.subscription === 'FREE' ? 10 : '∞'
+        }
+        
+        document.getElementById('images-used').textContent = stats.imagesUsed
+        document.getElementById('videos-used').textContent = stats.videosUsed
+        document.getElementById('credits-left').textContent = stats.creditsLeft
+      }
     } catch (error) {
       console.error('Failed to load usage stats:', error)
+      // Fallback stats
+      document.getElementById('images-used').textContent = '0'
+      document.getElementById('videos-used').textContent = '0'
+      document.getElementById('credits-left').textContent = '10'
     }
   }
 
@@ -502,19 +526,34 @@ class VTryApp {
       empty.classList.add('hidden')
       results.innerHTML = ''
       
-      // Mock data for now
-      setTimeout(() => {
-        loading.classList.add('hidden')
+      // Load real feed data from API
+      const tokens = await this.getStoredTokens()
+      const response = await fetch(`${this.apiBaseUrl}/api/feed?page=1&limit=20`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken}`,
+        },
+      })
+      
+      loading.classList.add('hidden')
+      
+      if (response.ok) {
+        const result = await response.json()
+        this.feedResults = result.data.results || []
         
         if (this.feedResults.length === 0) {
           empty.classList.remove('hidden')
         } else {
           this.renderFeed()
         }
-      }, 1000)
+      } else {
+        // Show empty state if API fails
+        empty.classList.remove('hidden')
+      }
       
     } catch (error) {
       console.error('Failed to load feed:', error)
+      document.getElementById('feed-loading').classList.add('hidden')
+      document.getElementById('feed-empty').classList.remove('hidden')
     }
   }
 
@@ -527,11 +566,11 @@ class VTryApp {
     }
     
     results.innerHTML = this.feedResults.map(result => `
-      <div class="feed-item">
-        <div class="feed-thumb" style="background-image: url(${result.thumbnailUrl}); background-size: cover;"></div>
+      <div class="feed-item" onclick="window.vtryApp.viewFeedItem('${result.id}')">
+        <div class="feed-thumb" style="background-image: url(${result.generatedImageUrl || result.originalImageUrl}); background-size: cover; background-position: center;"></div>
         <div class="feed-content">
-          <div class="feed-title">${result.productTitle || 'Product'}</div>
-          <div class="feed-meta">${result.websiteDomain} • ${this.formatDate(result.createdAt)}</div>
+          <div class="feed-title">${result.productInfo?.title || result.websiteInfo?.title || 'Product Try-On'}</div>
+          <div class="feed-meta">${result.websiteInfo?.domain || 'Unknown'} • ${this.formatDate(result.createdAt)}</div>
         </div>
       </div>
     `).join('')
@@ -547,19 +586,34 @@ class VTryApp {
       empty.classList.add('hidden')
       results.innerHTML = ''
       
-      // Mock data for now
-      setTimeout(() => {
-        loading.classList.add('hidden')
+      // Load real collections data from API
+      const tokens = await this.getStoredTokens()
+      const response = await fetch(`${this.apiBaseUrl}/api/collections`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken}`,
+        },
+      })
+      
+      loading.classList.add('hidden')
+      
+      if (response.ok) {
+        const result = await response.json()
+        this.collections = result.data.collections || []
         
         if (this.collections.length === 0) {
           empty.classList.remove('hidden')
         } else {
           this.renderCollections()
         }
-      }, 1000)
+      } else {
+        // Show empty state if API fails
+        empty.classList.remove('hidden')
+      }
       
     } catch (error) {
       console.error('Failed to load collections:', error)
+      document.getElementById('collections-loading').classList.add('hidden')
+      document.getElementById('collections-empty').classList.remove('hidden')
     }
   }
 
@@ -578,26 +632,133 @@ class VTryApp {
   }
 
   async searchFeed(query) {
-    // Implement search functionality
-    console.log('Searching feed:', query)
+    if (!query.trim()) {
+      await this.loadFeed()
+      return
+    }
+    
+    try {
+      const tokens = await this.getStoredTokens()
+      const response = await fetch(`${this.apiBaseUrl}/api/feed/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${tokens?.accessToken}`,
+        },
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        this.feedResults = result.data.results || []
+        this.renderFeed()
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+    }
   }
 
   async createCollection() {
     const name = prompt('Collection name:')
-    if (!name) return
+    if (!name?.trim()) return
     
     try {
-      // Mock for now
-      this.collections.push({
-        id: Date.now().toString(),
-        name,
-        itemCount: 0
+      const tokens = await this.getStoredTokens()
+      const response = await fetch(`${this.apiBaseUrl}/api/collections`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens?.accessToken}`,
+        },
+        body: JSON.stringify({ name: name.trim() }),
       })
       
-      this.renderCollections()
-      this.showSuccess('Collection created')
+      if (response.ok) {
+        const result = await response.json()
+        this.collections.push(result.data)
+        this.renderCollections()
+        this.showSuccess('Collection created successfully')
+      } else {
+        this.showError('Failed to create collection')
+      }
     } catch (error) {
       console.error('Failed to create collection:', error)
+      this.showError('Failed to create collection')
+    }
+  }
+
+  async viewFeedItem(itemId) {
+    try {
+      const item = this.feedResults.find(r => r.id === itemId)
+      if (!item) return
+      
+      // Create and show modal with full image
+      const modal = document.createElement('div')
+      modal.className = 'modal-overlay'
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; background: white; border-radius: 8px; overflow: hidden;">
+          <div class="modal-header" style="padding: 16px; border-bottom: 1px solid #E9ECEF; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px;">${item.productInfo?.title || 'Try-On Result'}</h3>
+            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+          </div>
+          <div class="modal-body" style="padding: 20px; text-align: center;">
+            <img src="${item.generatedImageUrl}" alt="Try-on result" style="max-width: 100%; max-height: 60vh; border-radius: 8px;">
+            <div style="margin-top: 16px; font-size: 14px; color: #6C757D;">
+              ${item.websiteInfo?.domain} • ${this.formatDate(item.createdAt)}
+            </div>
+          </div>
+          <div class="modal-footer" style="padding: 16px; border-top: 1px solid #E9ECEF; display: flex; gap: 8px; justify-content: center;">
+            <button onclick="window.vtryApp.downloadImage('${item.generatedImageUrl}')" class="btn btn-secondary btn-sm">Download</button>
+            <button onclick="window.vtryApp.shareImage('${item.id}')" class="btn btn-secondary btn-sm">Share</button>
+          </div>
+        </div>
+      `
+      modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+        background: rgba(0,0,0,0.8); z-index: 10000; 
+        display: flex; align-items: center; justify-content: center;
+      `
+      
+      document.body.appendChild(modal)
+      
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove()
+      })
+    } catch (error) {
+      console.error('Failed to view feed item:', error)
+    }
+  }
+
+  async downloadImage(imageUrl) {
+    try {
+      const link = document.createElement('a')
+      link.href = imageUrl
+      link.download = `vtry-result-${Date.now()}.jpg`
+      link.target = '_blank'
+      link.click()
+      this.showSuccess('Download started')
+    } catch (error) {
+      console.error('Download failed:', error)
+      this.showError('Download failed')
+    }
+  }
+
+  async shareImage(itemId) {
+    try {
+      const item = this.feedResults.find(r => r.id === itemId)
+      if (!item) return
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: 'My V-Try.app Result',
+          text: 'Check out my AI try-on result!',
+          url: item.generatedImageUrl,
+        })
+      } else {
+        await navigator.clipboard.writeText(item.generatedImageUrl)
+        this.showSuccess('Link copied to clipboard')
+      }
+    } catch (error) {
+      console.error('Share failed:', error)
+      this.showError('Share failed')
     }
   }
 
