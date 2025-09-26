@@ -15,6 +15,9 @@ RUN npm ci --only=production
 COPY src/ ./src/
 COPY prisma/ ./prisma/
 
+# Verify prisma files exist
+RUN ls -la prisma/ && cat prisma/schema.prisma | head -5
+
 # Generate Prisma client
 RUN npx prisma generate
 
