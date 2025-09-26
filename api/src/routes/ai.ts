@@ -239,8 +239,6 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           productUrl: generateData.productUrl,
           productTitle: productInfo.title,
           productDescription: productInfo.description,
-          productCategory: productInfo.category,
-          productBrand: productInfo.brand,
           websiteDomain: generateData.websiteInfo.domain,
           websiteTitle: generateData.websiteInfo.title,
           websiteDescription: generateData.websiteInfo.description,
