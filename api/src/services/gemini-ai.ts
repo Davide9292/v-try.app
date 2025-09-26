@@ -182,23 +182,33 @@ export class GeminiAIService {
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
 
     // Model replacement prompt - replace the model in the product image with the user
-    return `Create a model replacement image by replacing the model in the product photo with the person from the user photo.
+    return `Create a model replacement image by replacing the model in the product photo with the person from the user photos.
 
-TASK: Replace the model/person in the second image (product photo) with the person from the first image (user photo).
+TASK: Replace the model/person in the product image with the user, using BOTH the user's face photo and body photo for complete accuracy.
+
+INPUT IMAGES:
+- First image: User's face photo (for facial features, hair, skin tone)
+- Second image: User's body photo (for body proportions, physique, posture reference)  
+- Third image: Product photo (original scene to preserve)
 
 STEP-BY-STEP INSTRUCTIONS:
 1. Take the complete scene from the product image - background, lighting, setting, pose, clothing, and composition
-2. Replace ONLY the model's face, hair, and body with the person from the user image
-3. Keep everything else from the product image exactly the same - pose, clothes, background, lighting, shadows
+2. Replace the model's face and head using the user's face photo (facial features, hair, skin tone, head shape)
+3. Replace the model's body using the user's body photo (body proportions, physique, build, natural posture)
+4. Combine both user references to create a complete and accurate representation
+5. Keep everything else from the product image exactly the same - pose, clothes, background, lighting, shadows
 
 CRITICAL REQUIREMENTS:
 - Use the EXACT scene, background, and setting from the product image
 - Use the EXACT clothing, colors, patterns, and styling from the product image  
 - Use the EXACT pose, body position, and composition from the product image
-- Replace ONLY the model's physical appearance (face, hair, skin tone, body shape) with the user's
+- Combine facial features from the user's face photo with body characteristics from the user's body photo
+- Replace the model's face, hair, and head entirely with the user's appearance from the face photo
+- Replace the model's body shape, build, and proportions with the user's physique from the body photo
 - Maintain the same lighting direction, shadows, and photographic style as the product image
-- Adjust the clothing fit naturally to the user's body proportions while keeping the same style
+- Adjust the clothing fit naturally to match the user's actual body proportions from both photos
 - Preserve all product image details: background elements, props, studio setup, etc.
+- Create a seamless fusion that looks like the user (with their real face and body) was the original model
 
 PHOTOGRAPHIC CONSISTENCY:
 - Match the exact camera angle and perspective from the product image
@@ -207,7 +217,12 @@ PHOTOGRAPHIC CONSISTENCY:
 - Preserve the same image quality and professional studio aesthetic
 
 RESULT GOAL:
-The final image should look like the user was the original model in the product photoshoot. Someone should not be able to tell that any replacement was made - it should appear as if the user was always the model in that exact scene.
+The final image should look like the user (with their actual face from the face photo and actual body from the body photo) was the original model in the product photoshoot. The result should be a perfect fusion that combines:
+- The user's real facial features, hair, and skin tone from their face photo
+- The user's real body proportions, build, and physique from their body photo  
+- The product photo's exact scene, clothing, pose, and professional quality
+
+Someone should not be able to tell that any replacement was made - it should appear as if the user was always the model in that exact scene wearing those clothes.
 
 ${request.prompt ? `Additional context: ${request.prompt}` : ''}`
   }
