@@ -658,8 +658,12 @@ class VTryContentScript {
         
         const status = await response.json()
         console.log('📊 Job status response:', status)
+        console.log('📊 Actual status value:', status.data?.status)
         
-        switch (status.status) {
+        const jobStatus = status.data?.status || status.status
+        console.log('🎯 Processing job status:', jobStatus)
+        
+        switch (jobStatus) {
           case 'queued':
             this.updateProgress(25, 'Queued for processing...')
             break
@@ -668,10 +672,10 @@ class VTryContentScript {
             break
           case 'completed':
             this.updateProgress(100, 'Complete!')
-            this.showResult(status.resultUrl)
+            this.showResult(status.data?.resultUrl || status.resultUrl)
             return
           case 'failed':
-            throw new Error(status.error || 'Generation failed')
+            throw new Error(status.data?.error || status.error || 'Generation failed')
           case 'cancelled':
             throw new Error('Generation was cancelled')
         }

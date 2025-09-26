@@ -53,8 +53,8 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       
       console.log(`🤖 Mock AI: Starting generation for job ${jobId}`)
       
-      // Simulate processing time
-      setTimeout(async () => {
+      // Simulate processing time - use setImmediate to ensure it runs
+      const completeJob = async () => {
         try {
           console.log(`🤖 Mock AI: Completing job ${jobId}`)
           
@@ -77,7 +77,9 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         } catch (error) {
           console.error(`❌ Mock AI: Generation failed for job ${jobId}:`, error)
         }
-      }, Math.random() * 20000 + 5000) // 5-25 seconds
+      }
+      
+      setTimeout(completeJob, 3000) // Fixed 3 seconds for testing
       
       return { jobId, status: 'queued' }
     },
