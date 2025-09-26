@@ -1,5 +1,5 @@
 // KIE AI Service - Enterprise Grade Integration
-import fetch from 'node-fetch'
+// Using built-in fetch (Node.js 18+)
 
 export interface KIEAIGenerationRequest {
   type: 'image' | 'video'
