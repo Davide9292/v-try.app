@@ -32,7 +32,19 @@ v-try.app/
 └── README.md          # This file
 ```
 
-## 🚀 Quick Start
+## 🧪 Quick Test (5 Minutes)
+
+**Want to test the extension immediately? Follow the quick testing guide:**
+
+👉 **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Complete testing instructions with Railway deployment
+
+### Key Steps:
+1. Deploy backend to Railway (2 minutes)
+2. Configure extension with your API URL (1 minute)  
+3. Load extension in Chrome (1 minute)
+4. Test authentication and try-on (1 minute)
+
+## 🚀 Development Setup
 
 ### Chrome Extension
 ```bash
@@ -41,7 +53,7 @@ cd extension/
 # See docs/install_guide.md for detailed instructions
 ```
 
-### Website Development
+### Website Development  
 ```bash
 cd website/
 npm install

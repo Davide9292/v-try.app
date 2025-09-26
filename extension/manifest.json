@@ -15,11 +15,14 @@
   "host_permissions": [
     "https://api.kie.ai/*",
     "https://api.v-try.app/*",
-    "https://v-try.app/*"
+    "https://v-try.app/*",
+    "https://vtry-app-backend-production.up.railway.app/*",
+    "http://localhost:3001/*",
+    "http://localhost:3000/*"
   ],
   
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup-minimal.html",
     "default_title": "V-Try.app"
   },
   
@@ -32,7 +35,7 @@
         "services/auth.js",
         "services/ai.js",
         "services/feed.js",
-        "content.js"
+        "content-minimal.js"
       ],
       "css": ["content.css"]
     }
@@ -63,7 +66,9 @@
   "externally_connectable": {
     "matches": [
       "https://v-try.app/*",
-      "https://auth.v-try.app/*"
+      "https://auth.v-try.app/*",
+      "http://localhost:3000/*",
+      "http://localhost:3001/*"
     ]
   }
 }
