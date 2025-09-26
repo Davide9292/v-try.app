@@ -120,10 +120,17 @@ const buildServer = async (): Promise<FastifyInstance> => {
     credentials: true,
   })
 
+  // Register Redis first
+  await server.register(redis, {
+    url: config.redisUrl,
+    family: 4,
+  })
+
+  // Register rate limit with in-memory store (fallback)
   await server.register(rateLimit, {
     max: 1000,
     timeWindow: '1 minute',
-    redis: config.redisUrl,
+    skipOnError: true, // Skip rate limiting on errors
   })
 
   await server.register(jwt, {
@@ -135,11 +142,6 @@ const buildServer = async (): Promise<FastifyInstance> => {
     verify: {
       algorithms: ['HS256'],
     },
-  })
-
-  await server.register(redis, {
-    url: config.redisUrl,
-    family: 4,
   })
 
   await server.register(websocket)
