@@ -181,26 +181,35 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
 
-    // Create a comprehensive prompt for virtual try-on using Gemini's capabilities
-    return `Create a professional virtual try-on image by combining these two images:
+    // Enhanced prompt based on Gemini API documentation best practices
+    return `Create a high-quality virtual try-on image using these two input images.
 
-1. Take the person from the first image (user photo)
-2. Take the clothing item from the second image (product photo)  
-3. Generate a new image showing the person wearing the clothing item
+STEP-BY-STEP INSTRUCTIONS:
+1. First, analyze the person in the user image - note their pose, body proportions, facial features, and current setting
+2. Second, examine the clothing item in the product image - identify the exact garment, color, pattern, texture, and style details  
+3. Third, generate a new image showing the person wearing this exact clothing item
 
-Requirements:
-- The person should be wearing the exact clothing item from the product image
-- Maintain the person's appearance, face, body shape, and pose from the original photo
-- The clothing should fit naturally and realistically on the person's body
-- Ensure proper lighting, shadows, and fabric texture to make it look authentic
-- Style: ${styleDesc}
-- The final result should look like a professional photo of the person actually wearing this clothing item
-- Pay attention to proper fit, draping, and how the fabric would naturally fall on the person's body
-- Maintain consistent lighting and perspective between the person and the clothing
+SPECIFIC REQUIREMENTS:
+- Keep the person's face, hair, skin tone, and body proportions completely unchanged
+- Replace only their current clothing with the garment from the product image
+- Maintain the person's original pose and body position
+- Preserve the original background and lighting environment
+- Ensure the clothing fits naturally with realistic draping and shadows
+- Match fabric texture, color accuracy, and material properties from the product image
+- Create seamless integration with no visible editing artifacts
 
-${request.prompt ? `Additional instructions: ${request.prompt}` : ''}
+PHOTOGRAPHIC STYLE: ${styleDesc}
 
-Generate a high-quality, realistic image that seamlessly combines the person and the clothing item.`
+QUALITY STANDARDS:
+- Professional photography quality with sharp details
+- Consistent lighting direction and shadow placement
+- Authentic fabric behavior and natural clothing fit
+- Realistic body-clothing interaction and proportions
+- High-fidelity color reproduction and texture detail
+
+The result should appear as if the person was originally photographed wearing this clothing item in their current setting.
+
+${request.prompt ? `Additional context: ${request.prompt}` : ''}`
   }
 
   /**

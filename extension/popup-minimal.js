@@ -667,9 +667,9 @@ class VTryApp {
       <div class="feed-item">
         <div class="feed-thumb" 
              style="background-image: url(${result.generatedImageUrl || result.originalImageUrl}); background-size: cover; background-position: center; cursor: pointer;" 
-             onclick="window.vtryApp.viewFeedItem('${result.id}')" 
+             onclick="vtryApp.viewFeedItem('${result.id}')" 
              title="Click to expand image"></div>
-        <div class="feed-content" style="cursor: pointer;" onclick="window.vtryApp.viewFeedItem('${result.id}')">
+        <div class="feed-content" style="cursor: pointer;" onclick="vtryApp.viewFeedItem('${result.id}')">
           <div class="feed-title">${result.productInfo?.title || result.websiteInfo?.title || 'Product Try-On'}</div>
           <div class="feed-meta">${result.websiteInfo?.domain || 'Unknown'} • ${this.formatDate(result.createdAt)}</div>
           ${result.productUrl ? `
@@ -677,7 +677,7 @@ class VTryApp {
               <a href="${result.productUrl}" target="_blank" class="feed-link" 
                  style="font-size: 11px; color: #007BFF; text-decoration: none; display: inline-flex; align-items: center; gap: 2px;"
                  onclick="event.stopPropagation()">
-                <span>🔗</span> View Product
+                <span>🔗</span> View Original Page
               </a>
             </div>
           ` : ''}
@@ -810,7 +810,7 @@ class VTryApp {
               ${item.productUrl ? `
                 <a href="${item.productUrl}" target="_blank" 
                    style="font-size: 12px; color: #007BFF; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;">
-                  <span>🔗</span> View Original Product
+                  <span>🔗</span> View Original Page
                 </a>
               ` : ''}
             </div>
@@ -823,10 +823,10 @@ class VTryApp {
             </div>
           </div>
           <div class="modal-footer" style="padding: 16px; border-top: 1px solid #E9ECEF; display: flex; gap: 8px; justify-content: center;">
-            <button onclick="window.vtryApp.downloadImage('${item.generatedImageUrl}')" class="btn btn-secondary btn-sm">Download</button>
-            <button onclick="window.vtryApp.shareImage('${item.id}')" class="btn btn-secondary btn-sm">Share</button>
+            <button onclick="vtryApp.downloadImage('${item.generatedImageUrl}')" class="btn btn-secondary btn-sm">Download</button>
+            <button onclick="vtryApp.shareImage('${item.id}')" class="btn btn-secondary btn-sm">Share</button>
             ${item.productUrl ? `
-              <button onclick="window.open('${item.productUrl}', '_blank')" class="btn btn-secondary btn-sm">View Product</button>
+              <button onclick="window.open('${item.productUrl}', '_blank')" class="btn btn-secondary btn-sm">View Original Page</button>
             ` : ''}
           </div>
         </div>
