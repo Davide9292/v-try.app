@@ -36,10 +36,9 @@ const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret: process.env.JWT_SECRET!,
   kieApiKey: process.env.KIE_AI_API_KEY!,
-  awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  awsS3Bucket: process.env.AWS_S3_BUCKET!,
-  awsRegion: process.env.AWS_REGION || 'us-east-1',
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
 }
 
 // Validate required environment variables
@@ -47,9 +46,9 @@ const requiredEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET', 
   'KIE_AI_API_KEY',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_S3_BUCKET'
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET'
 ]
 
 for (const envVar of requiredEnvVars) {
