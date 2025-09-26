@@ -20,22 +20,7 @@ const PROTECTED_ROUTES = [
   '/api/collections',
 ]
 
-// Extend FastifyRequest to include user
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: {
-      userId: string
-      sessionId: string
-      email: string
-      username: string
-      subscription: string
-    }
-  }
-
-  interface FastifyInstance {
-    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
-  }
-}
+// User type for requests (removed conflicting declare module)
 
 export const authenticateToken = async (
   request: FastifyRequest,

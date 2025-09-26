@@ -1,12 +1,12 @@
 // WebSocket Service - Real-time Communication
 import type { FastifyInstance } from 'fastify'
-import type { SocketStream } from '@fastify/websocket'
+// import type { SocketStream } from '@fastify/websocket' // Type not exported, using any
 import type { IncomingMessage } from 'http'
 
 interface WebSocketClient {
   id: string
   userId?: string
-  socket: SocketStream
+  socket: any // SocketStream type not available
   lastPing: number
   subscriptions: Set<string>
 }
@@ -31,7 +31,7 @@ export class WebSocketService {
   }
 
   // Handle new WebSocket connections
-  handleConnection(connection: SocketStream, request: IncomingMessage) {
+  handleConnection(connection: any, request: IncomingMessage) {
     const clientId = this.generateClientId()
     const client: WebSocketClient = {
       id: clientId,

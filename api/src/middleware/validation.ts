@@ -136,7 +136,7 @@ export const validateRequest = (schema: {
               field: err.path.join('.'),
               message: err.message,
               code: err.code,
-              received: err.received,
+              received: (err as any).received || 'unknown',
             })),
           },
         })
@@ -228,14 +228,18 @@ export const validationSchemas = {
 
   // Feed management
   getFeed: {
-    query: commonSchemas.pagination.extend({
+    query: z.object({
+      page: z.coerce.number().min(1).default(1),
+      limit: z.coerce.number().min(1).max(100).default(20),
       sortBy: z.enum(['newest', 'oldest', 'most_liked', 'most_viewed']).default('newest'),
       generationType: z.enum(['image', 'video', 'all']).default('all'),
       style: z.array(commonSchemas.aiStyle).optional(),
       websites: z.array(z.string()).optional(),
       tags: z.array(z.string()).optional(),
       collections: z.array(commonSchemas.nanoid).optional(),
-    }).merge(commonSchemas.dateRange),
+      dateFrom: z.coerce.date().optional(),
+      dateTo: z.coerce.date().optional(),
+    }),
   },
 
   searchFeed: {

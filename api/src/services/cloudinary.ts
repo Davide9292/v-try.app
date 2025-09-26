@@ -258,17 +258,17 @@ export class CloudinaryService {
     const publicId = `${userId}_${nanoid(10)}`
     const fullFolder = `vtry-app/${folder}`
 
-    const signature = cloudinary.utils.api_sign_request(
-      {
-        timestamp,
-        folder: fullFolder,
-        public_id: publicId,
-        resource_type: 'image',
-        format: 'auto',
-        quality: 'auto:good',
-      },
-      process.env.CLOUDINARY_API_SECRET!
-    )
+      const signature = cloudinary.utils.api_sign_request(
+        {
+          timestamp,
+          folder: fullFolder,
+          public_id: publicId,
+          resource_type: 'image',
+          format: 'auto',
+          quality: 'auto:good',
+        },
+        process.env.CLOUDINARY_API_SECRET || ''
+      )
 
     return {
       signature,

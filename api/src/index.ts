@@ -95,9 +95,7 @@ const buildServer = async (): Promise<FastifyInstance> => {
   })
 
   await server.register(cors, {
-    origin: config.nodeEnv === 'production' 
-      ? ['https://v-try.app', 'https://www.v-try.app']
-      : true,
+    origin: config.corsOrigins,
     credentials: true,
   })
 
@@ -140,7 +138,9 @@ const buildServer = async (): Promise<FastifyInstance> => {
   await server.register(authPlugin)
 
   // Add middleware
-  server.addHook('onRequest', authenticateToken)
+  server.addHook('onRequest', async (request, reply) => {
+    await authenticateToken(request, reply, () => {})
+  })
   server.setErrorHandler(errorHandler)
 
   // Health check endpoint
@@ -157,7 +157,7 @@ const buildServer = async (): Promise<FastifyInstance> => {
       }
     } catch (error) {
       server.log.error('Health check failed:', error)
-      throw server.httpErrors.serviceUnavailable('Service unhealthy')
+      throw server.httpErrors?.serviceUnavailable('Service unhealthy') || new Error('Service unhealthy')
     }
   })
 
@@ -170,7 +170,7 @@ const buildServer = async (): Promise<FastifyInstance> => {
 
   // WebSocket endpoint
   await server.register(async function (fastify) {
-    fastify.get('/ws', { websocket: true }, (connection, req) => {
+    fastify.get('/ws', { websocket: true }, (connection: any, req: any) => {
       wsService.handleConnection(connection, req)
     })
   })

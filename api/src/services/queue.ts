@@ -156,18 +156,17 @@ export class BullQueueService {
    * Setup job processors
    */
   private setupJobProcessors(): void {
-    // Main generation processor
+        // Main generation processor
     this.generationQueue.process('generate', 5, async (job: Job<GenerationJobData>) => {
       const { KIEAIService } = await import('./kie-ai')
-      const { S3Service } = await import('./s3')
+      const { CloudinaryService } = await import('./cloudinary')
       const { PrismaClient } = await import('@prisma/client')
       
       const kieAI = new KIEAIService(process.env.KIE_AI_API_KEY!)
-      const s3 = new S3Service({
-        awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        awsS3Bucket: process.env.AWS_S3_BUCKET!,
-        awsRegion: process.env.AWS_REGION || 'us-east-1',
+      const cloudinary = new CloudinaryService({
+        cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+        cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,
+        cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
       })
       const prisma = new PrismaClient()
 
