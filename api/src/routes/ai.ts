@@ -227,6 +227,12 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       // Extract product info
       const productInfo = extractProductInfo(generateData.productUrl, generateData.websiteInfo)
 
+      // Validate and potentially truncate base64 image data
+      const targetImageData = generateData.targetImage
+      if (targetImageData.length > 16777215) { // MySQL TEXT field limit
+        console.warn('⚠️ Target image data is very large:', targetImageData.length, 'bytes')
+      }
+
       // Create job record
       const jobId = nanoid()
       const tryOnResult = await fastify.prisma.tryOnResult.create({
@@ -234,7 +240,8 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           id: nanoid(),
           userId: request.user.userId,
           jobId,
-          originalImageUrl: generateData.targetImage,
+          originalImageUrl: user.faceImageUrl || user.bodyImageUrl, // User's image
+          targetImageUrl: generateData.targetImage, // Product image from website
           generationType: generateData.type.toUpperCase() as any,
           productUrl: generateData.productUrl,
           productTitle: productInfo.title,
@@ -296,12 +303,21 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
+      // Enhanced error logging
+      console.error('🔥 AI Generation Error Details:', {
+        message: (error as any)?.message || 'Unknown error',
+        stack: (error as any)?.stack || 'No stack trace',
+        name: (error as any)?.name || 'Unknown error type',
+        code: (error as any)?.code || 'No error code',
+        error: error
+      })
+      
       fastify.log.error('Generate error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to start generation',
+          message: (error as any)?.message || 'Failed to start generation',
         },
       })
     }
