@@ -109,9 +109,31 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         }
         
         console.log(`📡 Making KIE AI API call with request:`, JSON.stringify(kieRequest, null, 2))
-        const kieResponse = await kieAI.generateImage(kieRequest)
         
-        console.log(`📡 KIE AI Response:`, JSON.stringify(kieResponse, null, 2))
+        // Try the KIE AI call with enhanced error logging
+        let kieResponse
+        try {
+          kieResponse = await kieAI.generateImage(kieRequest)
+          console.log(`📡 KIE AI Response:`, JSON.stringify(kieResponse, null, 2))
+        } catch (kieError) {
+          console.error(`❌ KIE AI generateImage failed:`, kieError)
+          console.error(`❌ KIE AI error details:`, {
+            message: kieError.message,
+            stack: kieError.stack,
+            name: kieError.name
+          })
+          
+          // If this is a 401 error, it means the API key doesn't have permissions
+          if (kieError.message && kieError.message.includes('401')) {
+            console.log('🔑 API key appears to be invalid or lacks permissions for this model')
+            console.log('🔄 Falling back to user image due to authentication issue')
+            
+            // Use fallback immediately
+            throw new Error('KIE AI authentication failed: API key lacks permissions')
+          }
+          
+          throw kieError
+        }
         
         // Update database with KIE AI job ID and initial status
         await fastify.prisma.tryOnResult.update({
