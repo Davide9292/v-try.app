@@ -1,73 +1,130 @@
-# V-Try.app Development Environment
+# V-Try.app Infrastructure - Docker Compose Development Environment
 version: '3.8'
 
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: vtry-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: vtryapp
-      POSTGRES_USER: vtryapp
-      POSTGRES_PASSWORD: vtryapp_dev_password
+      POSTGRES_DB: vtry_app
+      POSTGRES_USER: vtry_user
+      POSTGRES_PASSWORD: vtry_password
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vtry_user -d vtry_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - vtry-network
 
-  # Redis Cache
+  # Redis Cache & Queue
   redis:
     image: redis:7-alpine
     container_name: vtry-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass vtry_redis_password
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - vtry-network
 
-  # API Backend
+  # API Server
   api:
     build:
-      context: ../../api
-      dockerfile: Dockerfile
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.api
     container_name: vtry-api
+    restart: unless-stopped
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://vtryapp:vtryapp_dev_password@postgres:5432/vtryapp
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev_jwt_secret_change_in_production
+      PORT: 3001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://vtry_user:vtry_password@postgres:5432/vtry_app
+      REDIS_URL: redis://:vtry_redis_password@redis:6379
+      JWT_SECRET: vtry_jwt_secret_development_only
       KIE_AI_API_KEY: ${KIE_AI_API_KEY}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET: vtry-dev-uploads
-      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
     ports:
       - "3001:3001"
     volumes:
       - ../../api:/app
       - /app/node_modules
+      - /app/dist
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - vtry-network
-    command: npm run dev
 
-  # Website Frontend
+  # Background Worker
+  worker:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.worker
+    container_name: vtry-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://vtry_user:vtry_password@postgres:5432/vtry_app
+      REDIS_URL: redis://:vtry_redis_password@redis:6379
+      KIE_AI_API_KEY: ${KIE_AI_API_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    volumes:
+      - ../../api:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - vtry-network
+
+  # Website (Next.js)
   website:
     build:
-      context: ../../website
-      dockerfile: Dockerfile.dev
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.website
     container_name: vtry-website
+    restart: unless-stopped
     environment:
+      NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3001
-      NEXT_PUBLIC_API_KEY: dev_api_key
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: dev_nextauth_secret
+      NEXTAUTH_SECRET: vtry_nextauth_secret_development_only
+      DATABASE_URL: postgresql://vtry_user:vtry_password@postgres:5432/vtry_app
     ports:
       - "3000:3000"
     volumes:
@@ -75,87 +132,120 @@ services:
       - /app/node_modules
       - /app/.next
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - vtry-network
-    command: npm run dev
 
-  # Background Job Worker
-  worker:
-    build:
-      context: ../../api
-      dockerfile: Dockerfile
-    container_name: vtry-worker
+  # Redis Commander (Redis GUI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: vtry-redis-commander
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://vtryapp:vtryapp_dev_password@postgres:5432/vtryapp
-      REDIS_URL: redis://redis:6379
-      KIE_AI_API_KEY: ${KIE_AI_API_KEY}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_BUCKET: vtry-dev-uploads
-      AWS_REGION: us-east-1
-    volumes:
-      - ../../api:/app
-      - /app/node_modules
+      REDIS_HOSTS: local:redis:6379:0:vtry_redis_password
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+    ports:
+      - "8081:8081"
     depends_on:
-      - postgres
       - redis
     networks:
       - vtry-network
-    command: npm run worker
 
-  # Nginx Reverse Proxy
+  # pgAdmin (PostgreSQL GUI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vtry-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vtry.app
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - vtry-network
+
+  # Prometheus (Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vtry-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - vtry-network
+
+  # Grafana (Monitoring Dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vtry-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - "3030:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - vtry-network
+
+  # Nginx (Reverse Proxy)
   nginx:
     image: nginx:alpine
     container_name: vtry-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - api
       - website
     networks:
       - vtry-network
 
-  # Monitoring - Prometheus
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: vtry-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    networks:
-      - vtry-network
-
-  # Monitoring - Grafana
-  grafana:
-    image: grafana/grafana:latest
-    container_name: vtry-grafana
-    ports:
-      - "3003:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources
-    depends_on:
-      - prometheus
-    networks:
-      - vtry-network
-
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
 
 networks:
   vtry-network:
     driver: bridge
+    name: vtry-network

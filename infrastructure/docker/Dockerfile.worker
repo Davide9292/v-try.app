@@ -1,0 +1,79 @@
+# V-Try.app Background Worker - Docker Build
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY api/package*.json ./
+COPY shared/package*.json ./shared/
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Development stage
+FROM base AS dev
+WORKDIR /app
+
+# Copy package files
+COPY api/package*.json ./
+COPY shared/package*.json ./shared/
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY api/ ./
+COPY shared/ ./shared/
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Start development worker
+CMD ["npm", "run", "worker"]
+
+# Build stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy package files
+COPY api/package*.json ./
+COPY shared/package*.json ./shared/
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY api/ ./
+COPY shared/ ./shared/
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 vtryworker
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
+
+# Change ownership to non-root user
+RUN chown -R vtryworker:nodejs /app
+USER vtryworker
+
+# Start production worker
+CMD ["node", "dist/worker.js"]

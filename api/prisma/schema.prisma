@@ -1,0 +1,259 @@
+// V-Try.app Database Schema - Enterprise Grade
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  username         String    @unique
+  firstName        String?
+  lastName         String?
+  passwordHash     String
+  avatarUrl        String?
+  faceImageUrl     String?   // Required for AI generation
+  bodyImageUrl     String?   // Required for AI generation
+  emailVerified    Boolean   @default(false)
+  emailVerifiedAt  DateTime?
+  
+  // Subscription & Billing
+  subscription     SubscriptionPlan @default(FREE)
+  subscriptionId   String?
+  customerId       String?          // Stripe customer ID
+  
+  // Preferences
+  preferences      Json             @default("{}")
+  
+  // Timestamps
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lastLoginAt      DateTime?
+  
+  // Relations
+  sessions         Session[]
+  tryOnResults     TryOnResult[]
+  collections      Collection[]
+  apiUsage         ApiUsage[]
+  likes            Like[]
+  
+  @@map("users")
+}
+
+// Session Model for JWT management
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  refreshToken String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  
+  // Relations
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+// Try-On Results Model
+model TryOnResult {
+  id                   String           @id @default(cuid())
+  userId               String
+  
+  // Generation Details
+  jobId                String?          @unique
+  generationType       GenerationType
+  status               GenerationStatus @default(QUEUED)
+  
+  // Images & Videos
+  originalImageUrl     String           // User's original image
+  targetImageUrl       String           // Product image from website
+  generatedImageUrl    String?          // AI generated image
+  generatedVideoUrl    String?          // AI generated video
+  thumbnailUrl         String?          // Thumbnail for feed
+  
+  // Product Information
+  productUrl           String
+  productTitle         String?
+  productDescription   String?
+  productPrice         String?
+  productBrand         String?
+  
+  // Website Information
+  websiteDomain        String
+  websiteTitle         String
+  websiteDescription   String?
+  
+  // AI Generation Details
+  aiModel              String           // "nano-banana" or "veo3"
+  aiPrompt             String
+  aiStyle              AIStyle
+  aiParameters         Json             @default("{}")
+  
+  // Processing Information
+  processingTime       Int?             // milliseconds
+  cost                 Float            @default(0)
+  quality              Float?           // 0-1 quality score
+  
+  // User Images Used
+  faceImageUsed        String           // URL of face image used
+  bodyImageUsed        String           // URL of body image used
+  
+  // Metadata
+  deviceInfo           Json             @default("{}")
+  location             Json?            // Optional location data
+  error                String?          // Error message if failed
+  
+  // Social Features
+  isPublic             Boolean          @default(false)
+  views                Int              @default(0)
+  likes                Int              @default(0)
+  shares               Int              @default(0)
+  tags                 String[]         @default([])
+  
+  // Timestamps
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  
+  // Relations
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionItems      CollectionItem[]
+  userLikes            Like[]
+  
+  @@map("try_on_results")
+}
+
+// Collections Model
+model Collection {
+  id           String           @id @default(cuid())
+  userId       String
+  name         String
+  description  String?
+  coverImageUrl String?
+  isPublic     Boolean          @default(false)
+  
+  // Timestamps
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  
+  // Relations
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        CollectionItem[]
+  
+  @@map("collections")
+}
+
+// Collection Items (Many-to-Many between Collections and TryOnResults)
+model CollectionItem {
+  id             String      @id @default(cuid())
+  collectionId   String
+  tryOnResultId  String
+  
+  // Timestamps
+  createdAt      DateTime    @default(now())
+  
+  // Relations
+  collection     Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  tryOnResult    TryOnResult @relation(fields: [tryOnResultId], references: [id], onDelete: Cascade)
+  
+  @@unique([collectionId, tryOnResultId])
+  @@map("collection_items")
+}
+
+// Likes Model (Many-to-Many between Users and TryOnResults)
+model Like {
+  id             String      @id @default(cuid())
+  userId         String
+  tryOnResultId  String
+  
+  // Timestamps
+  createdAt      DateTime    @default(now())
+  
+  // Relations
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tryOnResult    TryOnResult @relation(fields: [tryOnResultId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, tryOnResultId])
+  @@map("likes")
+}
+
+// API Usage Tracking
+model ApiUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime @db.Date
+  
+  // Usage Counters
+  imagesGenerated  Int      @default(0)
+  videosGenerated  Int      @default(0)
+  totalCost        Float    @default(0)
+  apiCalls         Int      @default(0)
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@map("api_usage")
+}
+
+// Email Verification Tokens
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("email_verification_tokens")
+}
+
+// Password Reset Tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("password_reset_tokens")
+}
+
+// Enums
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum GenerationType {
+  IMAGE
+  VIDEO
+}
+
+enum GenerationStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AIStyle {
+  REALISTIC
+  ARTISTIC
+  FASHION
+  LIFESTYLE
+}

@@ -16,9 +16,9 @@ import feedRoutes from './routes/feed'
 import collectionsRoutes from './routes/collections'
 
 // Middleware
-import { authenticateToken } from './middleware/auth'
+import { authenticateToken, authPlugin } from './middleware/auth'
 import { validateRequest } from './middleware/validation'
-import { errorHandler } from './middleware/error'
+import { errorHandler, notFoundHandler } from './middleware/error'
 
 // Services
 import { RedisService } from './services/redis'
@@ -134,6 +134,9 @@ const buildServer = async (): Promise<FastifyInstance> => {
   server.decorate('redisService', redisService)
   server.decorate('wsService', wsService)
 
+  // Register auth plugin
+  await server.register(authPlugin)
+
   // Add middleware
   server.addHook('onRequest', authenticateToken)
   server.setErrorHandler(errorHandler)
@@ -171,15 +174,7 @@ const buildServer = async (): Promise<FastifyInstance> => {
   })
 
   // 404 handler
-  server.setNotFoundHandler(async (request, reply) => {
-    reply.code(404).send({
-      success: false,
-      error: {
-        code: 'NOT_FOUND',
-        message: `Route ${request.method} ${request.url} not found`,
-      },
-    })
-  })
+  server.setNotFoundHandler(notFoundHandler)
 
   return server
 }

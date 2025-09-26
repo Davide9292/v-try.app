@@ -1,0 +1,441 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* V-Try.app Global Styles - Brutalist Minimalism */
+
+@layer base {
+  :root {
+    /* Color System - Monochromatic Only */
+    --white: #FFFFFF;
+    --black: #000000;
+    --gray-50: #F8F9FA;
+    --gray-100: #E9ECEF;
+    --gray-200: #DEE2E6;
+    --gray-300: #CED4DA;
+    --gray-400: #ADB5BD;
+    --gray-500: #6C757D;
+    --gray-600: #495057;
+    --gray-700: #343A40;
+    --gray-800: #212529;
+    --gray-900: #000000;
+    
+    /* Typography */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+    
+    /* Spacing - 8px Grid System */
+    --space-0: 0px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    --space-24: 96px;
+    --space-32: 128px;
+    
+    /* Transitions */
+    --transition-fast: 0.1s ease;
+    --transition-normal: 0.15s ease;
+    --transition-slow: 0.2s ease;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-black font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Scale */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-black;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-5xl md:text-6xl;
+  }
+
+  h2 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h3 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h4 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h5 {
+    @apply text-xl md:text-2xl;
+  }
+
+  h6 {
+    @apply text-lg md:text-xl;
+  }
+
+  p {
+    @apply text-gray-600 leading-relaxed;
+  }
+
+  a {
+    @apply text-black transition-colors duration-150;
+  }
+
+  a:hover {
+    @apply text-gray-800;
+  }
+
+  /* Form Elements */
+  input, textarea, select {
+    @apply border-gray-200 bg-white text-black;
+    transition: border-color var(--transition-normal);
+  }
+
+  input:focus, textarea:focus, select:focus {
+    @apply border-black outline-none ring-0;
+  }
+
+  button {
+    @apply transition-all duration-150;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-black text-white;
+  }
+
+  ::-moz-selection {
+    @apply bg-black text-white;
+  }
+}
+
+@layer components {
+  /* Button Components */
+  .btn {
+    @apply px-6 py-3 font-medium transition-all duration-150 cursor-pointer;
+    @apply border border-transparent;
+    @apply focus:outline-none focus:ring-0;
+  }
+
+  .btn-primary {
+    @apply bg-black text-white;
+  }
+
+  .btn-primary:hover {
+    @apply bg-gray-800;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-black border-gray-200;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-gray-50;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-black;
+  }
+
+  .btn-ghost:hover {
+    @apply bg-gray-50;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-lg;
+  }
+
+  /* Input Components */
+  .input {
+    @apply w-full px-4 py-3 border border-gray-200 bg-white text-black;
+    @apply focus:border-black focus:outline-none focus:ring-0;
+    @apply placeholder:text-gray-400;
+  }
+
+  .input-sm {
+    @apply px-3 py-2 text-sm;
+  }
+
+  /* Card Components */
+  .card {
+    @apply bg-white border border-gray-200;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  /* Navigation Components */
+  .nav-link {
+    @apply text-gray-600 hover:text-black transition-colors duration-150;
+  }
+
+  .nav-link.active {
+    @apply text-black;
+  }
+
+  /* Layout Components */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section {
+    @apply py-16 md:py-24;
+  }
+
+  .section-sm {
+    @apply py-8 md:py-12;
+  }
+
+  .section-lg {
+    @apply py-24 md:py-32;
+  }
+
+  /* Grid Components */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .grid-auto-fill {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  /* Typography Components */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Loading States */
+  .skeleton {
+    @apply bg-gray-200 animate-pulse;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Modal Components */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center;
+    @apply opacity-0 pointer-events-none transition-opacity duration-200;
+  }
+
+  .modal-overlay.open {
+    @apply opacity-100 pointer-events-auto;
+  }
+
+  .modal {
+    @apply bg-white max-w-md w-full mx-4 transform transition-transform duration-200;
+    @apply scale-95;
+  }
+
+  .modal-overlay.open .modal {
+    @apply scale-100;
+  }
+
+  /* Toast Components */
+  .toast {
+    @apply fixed top-4 right-4 bg-black text-white px-4 py-3 text-sm;
+    @apply transform translate-x-full transition-transform duration-300;
+    @apply z-50;
+  }
+
+  .toast.show {
+    @apply translate-x-0;
+  }
+
+  /* Badge Components */
+  .badge {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium;
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  .badge-black {
+    @apply bg-black text-white;
+  }
+
+  /* Progress Components */
+  .progress {
+    @apply w-full bg-gray-200 h-2;
+  }
+
+  .progress-bar {
+    @apply h-full bg-black transition-all duration-300;
+  }
+
+  /* Divider Components */
+  .divider {
+    @apply border-t border-gray-200 my-8;
+  }
+
+  .divider-vertical {
+    @apply border-l border-gray-200 mx-8;
+  }
+
+  /* Focus States */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2;
+  }
+
+  /* Aspect Ratios */
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .aspect-photo {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@layer utilities {
+  /* Custom Utilities */
+  .text-gradient {
+    background: linear-gradient(135deg, #000000, #343a40);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #000000, #343a40) 1;
+  }
+
+  /* Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Hover Utilities */
+  .hover-lift {
+    transition: transform var(--transition-normal);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Print Utilities */
+  @media print {
+    .print-hidden {
+      display: none !important;
+    }
+
+    .print-visible {
+      display: block !important;
+    }
+  }
+
+  /* Dark Mode Utilities (for future use) */
+  .dark-mode {
+    --white: #000000;
+    --black: #FFFFFF;
+    --gray-50: #212529;
+    --gray-100: #343A40;
+    --gray-200: #495057;
+    --gray-300: #6C757D;
+    --gray-400: #ADB5BD;
+    --gray-500: #CED4DA;
+    --gray-600: #DEE2E6;
+    --gray-700: #E9ECEF;
+    --gray-800: #F8F9FA;
+    --gray-900: #FFFFFF;
+  }
+}
