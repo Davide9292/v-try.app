@@ -58,6 +58,7 @@ const requiredEnvVars = [
 
 // Optional vars that don't crash the app
 const optionalEnvVars = [
+  'REDIS_URL',
   'KIE_AI_API_KEY',
   'CLOUDINARY_CLOUD_NAME', 
   'CLOUDINARY_API_KEY',
@@ -120,11 +121,20 @@ const buildServer = async (): Promise<FastifyInstance> => {
     credentials: true,
   })
 
-  // Register Redis first
-  await server.register(redis, {
-    url: config.redisUrl,
-    family: 4,
-  })
+  // Register Redis (optional - skip if not available)
+  if (config.redisUrl && !config.redisUrl.includes('redis.railway.internal')) {
+    try {
+      await server.register(redis, {
+        url: config.redisUrl,
+        family: 4,
+      })
+      console.log('✅ Redis connected successfully')
+    } catch (error) {
+      console.warn('⚠️  Redis connection failed, continuing without Redis:', (error as any).message)
+    }
+  } else {
+    console.warn('⚠️  Redis URL not available or invalid, skipping Redis setup')
+  }
 
   // Register rate limit with in-memory store (fallback)
   await server.register(rateLimit, {
