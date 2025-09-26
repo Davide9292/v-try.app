@@ -63,13 +63,25 @@ export class KIEAIService {
       }
 
       const result = await response.json() as any
-      console.log('🎨 KIE AI Response:', result)
+      console.log('🎨 KIE AI Full Response:', JSON.stringify(result, null, 2))
 
-      // KIE AI returns the image URL directly in the response
-      const imageUrl = result.url || result.image_url || result.data?.url
+      // Try multiple possible locations for the image URL
+      const imageUrl = result.url || 
+                      result.image_url || 
+                      result.data?.url || 
+                      result.data?.image_url ||
+                      result.output?.url ||
+                      result.output?.image_url ||
+                      result.images?.[0]?.url ||
+                      result.images?.[0] ||
+                      result.result?.url ||
+                      result.result?.image_url
+      
+      console.log('🔍 Extracted image URL:', imageUrl)
       
       if (!imageUrl) {
-        console.error('❌ No image URL in KIE AI response:', result)
+        console.error('❌ No image URL found in KIE AI response. Full response:', JSON.stringify(result, null, 2))
+        console.error('❌ Tried these fields: url, image_url, data.url, data.image_url, output.url, output.image_url, images[0].url, images[0], result.url, result.image_url')
         throw new Error('No image URL returned from KIE AI')
       }
 
