@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "echo 'Starting V-Try API...' && echo 'DATABASE_URL:' $DATABASE_URL && echo 'JWT_SECRET:' ${JWT_SECRET:+SET} && (npx prisma db push --accept-data-loss --skip-generate || echo 'DB setup failed, starting anyway...') && npm start",
+    "startCommand": "echo 'Starting V-Try API DEBUG...' && echo 'DATABASE_URL:' $DATABASE_URL && echo 'JWT_SECRET:' ${JWT_SECRET:+SET} && npm run debug && echo 'Debug completed, starting main app...' && npm start",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
