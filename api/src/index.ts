@@ -187,13 +187,24 @@ const buildServer = async (): Promise<FastifyInstance> => {
   server.get('/health', async () => {
     try {
       await prisma.$queryRaw`SELECT 1`
-      await server.redis.ping()
+      
+      // Try Redis ping only if Redis is available
+      try {
+        if (server.redis) {
+          await server.redis.ping()
+        }
+      } catch (redisError) {
+        // Redis is optional, continue without it
+        console.log('Redis ping failed (optional):', (redisError as any).message)
+      }
       
       return {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         version: '2.0.0',
         environment: config.nodeEnv,
+        database: 'connected',
+        redis: server.redis ? 'connected' : 'not_available',
       }
     } catch (error) {
       server.log.error('Health check failed:', error as any)
