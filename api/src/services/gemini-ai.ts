@@ -181,33 +181,33 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
 
-    // Enhanced prompt based on Gemini API documentation best practices
-    return `Create a high-quality virtual try-on image using these two input images.
+    // Model replacement prompt - replace the model in the product image with the user
+    return `Create a model replacement image by replacing the model in the product photo with the person from the user photo.
+
+TASK: Replace the model/person in the second image (product photo) with the person from the first image (user photo).
 
 STEP-BY-STEP INSTRUCTIONS:
-1. First, analyze the person in the user image - note their pose, body proportions, facial features, and current setting
-2. Second, examine the clothing item in the product image - identify the exact garment, color, pattern, texture, and style details  
-3. Third, generate a new image showing the person wearing this exact clothing item
+1. Take the complete scene from the product image - background, lighting, setting, pose, clothing, and composition
+2. Replace ONLY the model's face, hair, and body with the person from the user image
+3. Keep everything else from the product image exactly the same - pose, clothes, background, lighting, shadows
 
-SPECIFIC REQUIREMENTS:
-- Keep the person's face, hair, skin tone, and body proportions completely unchanged
-- Replace only their current clothing with the garment from the product image
-- Maintain the person's original pose and body position
-- Preserve the original background and lighting environment
-- Ensure the clothing fits naturally with realistic draping and shadows
-- Match fabric texture, color accuracy, and material properties from the product image
-- Create seamless integration with no visible editing artifacts
+CRITICAL REQUIREMENTS:
+- Use the EXACT scene, background, and setting from the product image
+- Use the EXACT clothing, colors, patterns, and styling from the product image  
+- Use the EXACT pose, body position, and composition from the product image
+- Replace ONLY the model's physical appearance (face, hair, skin tone, body shape) with the user's
+- Maintain the same lighting direction, shadows, and photographic style as the product image
+- Adjust the clothing fit naturally to the user's body proportions while keeping the same style
+- Preserve all product image details: background elements, props, studio setup, etc.
 
-PHOTOGRAPHIC STYLE: ${styleDesc}
+PHOTOGRAPHIC CONSISTENCY:
+- Match the exact camera angle and perspective from the product image
+- Maintain the same lighting setup and shadow patterns
+- Keep the same color grading and photographic style: ${styleDesc}
+- Preserve the same image quality and professional studio aesthetic
 
-QUALITY STANDARDS:
-- Professional photography quality with sharp details
-- Consistent lighting direction and shadow placement
-- Authentic fabric behavior and natural clothing fit
-- Realistic body-clothing interaction and proportions
-- High-fidelity color reproduction and texture detail
-
-The result should appear as if the person was originally photographed wearing this clothing item in their current setting.
+RESULT GOAL:
+The final image should look like the user was the original model in the product photoshoot. Someone should not be able to tell that any replacement was made - it should appear as if the user was always the model in that exact scene.
 
 ${request.prompt ? `Additional context: ${request.prompt}` : ''}`
   }
