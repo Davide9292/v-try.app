@@ -23,6 +23,7 @@ import { errorHandler, notFoundHandler } from './middleware/error'
 // Services
 import { RedisService } from './services/redis'
 import { WebSocketService } from './services/websocket'
+import { CloudinaryService } from './services/cloudinary'
 
 // Types
 import type { FastifyInstance } from 'fastify'
@@ -170,9 +171,11 @@ const buildServer = async (): Promise<FastifyInstance> => {
   // Initialize services
   const redisService = new RedisService(server.redis)
   const wsService = new WebSocketService(server)
+  const cloudinaryService = new CloudinaryService(config)
   
   server.decorate('redisService', redisService)
   server.decorate('wsService', wsService)
+  server.decorate('cloudinary', cloudinaryService)
 
   // Add authenticate decorator
   server.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {

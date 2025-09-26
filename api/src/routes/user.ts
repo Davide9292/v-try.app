@@ -51,7 +51,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     userId: string
   ): Promise<string> => {
     try {
-      // Extract base64 data
+      // Extract base64 data and create data URL
       const base64Data = base64Image.includes(',') 
         ? base64Image.split(',')[1] 
         : base64Image
@@ -70,16 +70,27 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         })
         .toBuffer()
       
-      // Generate filename
-      const filename = `${userId}/${type}_${nanoid()}.jpg`
+      // Convert processed buffer back to base64 data URL
+      const processedBase64 = `data:image/jpeg;base64,${processedBuffer.toString('base64')}`
       
-      // In production, upload to S3
-      // For now, return a mock URL
-      const mockUrl = `https://cdn.v-try.app/users/${filename}`
-      
-      fastify.log.info(`Processed ${type} image for user ${userId}: ${mockUrl}`)
-      
-      return mockUrl
+      // Upload to Cloudinary using the cloudinary service
+      if (fastify.cloudinary) {
+        const uploadResult = await fastify.cloudinary.uploadBase64Image(
+          processedBase64,
+          `users/${type}`,
+          userId
+        )
+        
+        fastify.log.info(`Uploaded ${type} image for user ${userId}: ${uploadResult.secureUrl}`)
+        return uploadResult.secureUrl
+      } else {
+        // Fallback: Generate filename and use a placeholder URL structure
+        const filename = `${type}_${nanoid()}.jpg`
+        const fallbackUrl = `https://res.cloudinary.com/vtryapp/image/upload/vtry-app/users/${type}/${userId}_${nanoid(10)}.jpg`
+        
+        fastify.log.warn(`Cloudinary not configured, using fallback URL for ${type} image: ${fallbackUrl}`)
+        return fallbackUrl
+      }
     } catch (error) {
       fastify.log.error(`Image processing failed for ${type}:`, error as any)
       throw new Error(`Failed to process ${type} image`)
