@@ -17,6 +17,7 @@ RUN npm install
 # Copy source code and schema from api directory
 COPY api/src/ ./src/
 COPY api/prisma/ ./prisma/
+COPY api/scripts/ ./scripts/
 
 # Generate Prisma client
 RUN npx prisma generate
