@@ -1,6 +1,9 @@
 # V-Try.app API Dockerfile
 FROM node:18-alpine
 
+# Install OpenSSL 1.1 for Prisma compatibility
+RUN apk add --no-cache openssl1.1-compat
+
 # Set working directory
 WORKDIR /app
 
