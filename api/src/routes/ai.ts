@@ -1,9 +1,9 @@
-// AI Generation Routes - KIE AI Integration
+// AI Generation Routes - Google Gemini AI Integration
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { checkDailyLimits } from '../middleware/auth'
-import { KIEAIService } from '../services/kie-ai'
+import { GeminiAIService } from '../services/gemini-ai'
 
 // Validation schemas
 const generateSchema = z.object({
@@ -47,30 +47,25 @@ interface StatusRequest extends AuthenticatedRequest {
 }
 
 const aiRoutes: FastifyPluginAsync = async (fastify) => {
-  // Initialize KIE AI service with API key from config
-  const kieAI = new KIEAIService(fastify.config.kieApiKey)
+  // Initialize Gemini AI service with API key from config
+  const geminiAI = new GeminiAIService(fastify.config.geminiApiKey)
   
-  // Real KIE AI integration
+  // Google Gemini AI integration
   const aiService = {
     async generateImage(request: any): Promise<any> {
       const jobId = request.jobId
       
-      console.log(`🤖 KIE AI: Starting generation for job ${jobId}`)
-      console.log(`🎯 Using model: ${request.type === 'video' ? 'Veo3' : 'Nano Banana'}`)
+      console.log(`🤖 Gemini AI: Starting generation for job ${jobId}`)
+      console.log(`🎯 Using model: Gemini 2.5 Flash Image Preview (Nano Banana)`)
       
       try {
-        // Check if KIE AI key is available
-        console.log('🔑 KIE AI Key check:', fastify.config.kieApiKey ? `Key present (${fastify.config.kieApiKey.substring(0, 10)}...)` : 'No key')
-        console.log('🔑 KIE AI Key length:', fastify.config.kieApiKey ? fastify.config.kieApiKey.length : 0)
-        console.log('🔑 KIE AI Key value check:', {
-          exists: !!fastify.config.kieApiKey,
-          notDefault: fastify.config.kieApiKey !== 'your_actual_kie_ai_key_here',
-          notEmpty: fastify.config.kieApiKey && fastify.config.kieApiKey.trim() !== ''
-        })
+        // Check if Gemini API key is available
+        console.log('🔑 Gemini API Key check:', fastify.config.geminiApiKey ? `Key present (${fastify.config.geminiApiKey.substring(0, 10)}...)` : 'No key')
+        console.log('🔑 Gemini API Key length:', fastify.config.geminiApiKey ? fastify.config.geminiApiKey.length : 0)
         
-        if (!fastify.config.kieApiKey || fastify.config.kieApiKey === 'your_actual_kie_ai_key_here' || fastify.config.kieApiKey.trim() === '') {
-          console.log('⚠️ KIE AI key not configured, using fallback approach')
-          console.log('⚠️ Reason: Key is', !fastify.config.kieApiKey ? 'missing' : fastify.config.kieApiKey === 'your_actual_kie_ai_key_here' ? 'default placeholder' : 'empty')
+        if (!fastify.config.geminiApiKey || fastify.config.geminiApiKey === 'your_actual_gemini_api_key_here' || fastify.config.geminiApiKey.trim() === '') {
+          console.log('⚠️ Gemini API key not configured, using fallback approach')
+          console.log('⚠️ Reason: Key is', !fastify.config.geminiApiKey ? 'missing' : fastify.config.geminiApiKey === 'your_actual_gemini_api_key_here' ? 'default placeholder' : 'empty')
           
           // Fallback: Return the user's image as a "generated" result for now
           const fallbackResponse = {
@@ -98,8 +93,8 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           return fallbackResponse
         }
         
-        // Call real KIE AI service
-        const kieRequest = {
+        // Call Gemini AI service
+        const geminiRequest = {
           type: request.type,
           userFaceImage: request.userFaceImage,
           userBodyImage: request.userBodyImage,
@@ -108,57 +103,53 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           parameters: request.parameters
         }
         
-        console.log(`📡 Making KIE AI API call with request:`, JSON.stringify(kieRequest, null, 2))
+        console.log(`📡 Making Gemini AI API call...`)
         
-        // Try the KIE AI call with enhanced error logging
-        let kieResponse
+        // Try the Gemini AI call
+        let geminiResponse
         try {
-          kieResponse = await kieAI.generateImage(kieRequest)
-          console.log(`📡 KIE AI Response:`, JSON.stringify(kieResponse, null, 2))
-        } catch (kieError) {
-          console.error(`❌ KIE AI generateImage failed:`, kieError)
-          console.error(`❌ KIE AI error details:`, {
-            message: kieError.message,
-            stack: kieError.stack,
-            name: kieError.name
+          geminiResponse = await geminiAI.generateImage(geminiRequest)
+          console.log(`📡 Gemini AI Response:`, JSON.stringify({ ...geminiResponse, resultUrl: geminiResponse.resultUrl ? `[${geminiResponse.resultUrl.length} chars]` : 'null' }, null, 2))
+        } catch (geminiError) {
+          console.error(`❌ Gemini AI generateImage failed:`, geminiError)
+          console.error(`❌ Gemini AI error details:`, {
+            message: geminiError.message,
+            stack: geminiError.stack,
+            name: geminiError.name
           })
           
-          // If this is a 401 error, it means the API key doesn't have permissions
-          if (kieError.message && kieError.message.includes('401')) {
-            console.log('🔑 API key appears to be invalid or lacks permissions for this model')
-            console.log('🔄 Falling back to user image due to authentication issue')
-            
-            // Use fallback immediately
-            throw new Error('KIE AI authentication failed: API key lacks permissions')
-          }
-          
-          throw kieError
+          // Use fallback on any Gemini error
+          throw new Error(`Gemini AI failed: ${geminiError.message}`)
         }
         
-        // Update database with KIE AI job ID and initial status
+        // Update database with Gemini AI result (since it's synchronous)
         await fastify.prisma.tryOnResult.update({
           where: { jobId },
           data: {
-            status: kieResponse.status.toUpperCase() as any,
-            externalJobId: kieResponse.jobId, // Store KIE AI job ID
+            status: 'COMPLETED',
+            generatedImageUrl: geminiResponse.resultUrl,
+            processingTime: geminiResponse.processingTime,
+            cost: geminiResponse.cost,
+            quality: geminiResponse.quality,
           },
         })
         
-        // Start polling KIE AI for completion
-        console.log(`🔄 Starting polling for KIE AI job: ${kieResponse.jobId}`)
-        this.pollKIEAIStatus(jobId, kieResponse.jobId)
+        console.log(`✅ Gemini generation completed for job ${jobId}`)
         
         return {
           jobId,
-          status: kieResponse.status,
-          estimatedTime: 30 // KIE AI typical processing time
+          status: 'completed',
+          resultUrl: geminiResponse.resultUrl,
+          processingTime: geminiResponse.processingTime,
+          cost: geminiResponse.cost,
+          quality: geminiResponse.quality
         }
         
       } catch (error) {
-        console.error(`❌ KIE AI: Failed to start generation for job ${jobId}:`, error)
+        console.error(`❌ Gemini AI: Failed to start generation for job ${jobId}:`, error)
         
-        // If KIE AI fails, fall back to user's image
-        console.log('🔄 KIE AI failed, falling back to user image approach')
+        // If Gemini fails, fall back to user's image
+        console.log('🔄 Gemini AI failed, falling back to user image approach')
         
         const fallbackResponse = {
           jobId: `fallback_${Date.now()}`,
@@ -178,83 +169,13 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
             processingTime: fallbackResponse.processingTime,
             cost: fallbackResponse.cost,
             quality: fallbackResponse.quality,
-            error: `KIE AI failed: ${(error as any)?.message}, used fallback`,
+            error: `Gemini AI failed: ${(error as any)?.message}, used fallback`,
           },
         })
         
         console.log(`✅ Fallback generation completed for job ${jobId}`)
         return fallbackResponse
       }
-    },
-    
-    async pollKIEAIStatus(jobId: string, kieJobId: string) {
-      console.log(`🔄 Starting KIE AI status polling for job ${jobId} (KIE: ${kieJobId})`)
-      
-      const poll = async () => {
-        try {
-          const status = await kieAI.getJobStatus(kieJobId)
-          console.log(`📊 KIE AI Status for ${jobId}:`, JSON.stringify(status, null, 2))
-          
-          // Update our database with the latest status
-          const updateData: any = {
-            status: status.status.toUpperCase(),
-          }
-          
-          if (status.resultUrl) {
-            updateData.generatedImageUrl = status.resultUrl
-          }
-          
-          if (status.processingTime) {
-            updateData.processingTime = status.processingTime
-          }
-          
-          if (status.cost) {
-            updateData.cost = status.cost
-          }
-          
-          if (status.quality) {
-            updateData.quality = status.quality
-          }
-          
-          if (status.error) {
-            updateData.error = status.error
-          }
-          
-          console.log(`📝 Updating database for job ${jobId} with:`, JSON.stringify(updateData, null, 2))
-          
-          await fastify.prisma.tryOnResult.update({
-            where: { jobId },
-            data: updateData,
-          })
-          
-          console.log(`✅ Database updated for job ${jobId}`)
-          
-          // If completed or failed, stop polling
-          if (status.status === 'completed' || status.status === 'failed') {
-            console.log(`🏁 KIE AI job ${jobId} finished with status: ${status.status}`)
-            console.log(`🖼️ Final result URL: ${status.resultUrl}`)
-            return
-          }
-          
-          // Continue polling every 3 seconds
-          setTimeout(poll, 3000)
-          
-        } catch (error) {
-          console.error(`❌ KIE AI polling error for job ${jobId}:`, error)
-          
-          // Mark as failed if polling fails
-          await fastify.prisma.tryOnResult.update({
-            where: { jobId },
-            data: {
-              status: 'FAILED',
-              error: 'Failed to check generation status',
-            },
-          })
-        }
-      }
-      
-      // Start polling after 2 seconds
-      setTimeout(poll, 2000)
     },
 
     async getStatus(jobId: string): Promise<any> {
@@ -430,7 +351,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           websiteDomain: generateData.websiteInfo.domain,
           websiteTitle: generateData.websiteInfo.title,
           websiteDescription: generateData.websiteInfo.description,
-          aiModel: generateData.type === 'video' ? 'veo3' : 'nano_banana',
+          aiModel: generateData.type === 'video' ? 'gemini_video' : 'gemini_nano_banana',
           aiPrompt: `Create a ${generateData.style} virtual try-on of the person wearing the product from the image`,
           aiStyle: generateData.style.toUpperCase() as any,
           aiParameters: generateData.parameters || {},
@@ -581,10 +502,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Cancel with KIE AI service
-      if (tryOnResult.externalJobId) {
-        await kieAI.cancelGeneration(tryOnResult.externalJobId)
-      }
+      // Note: Gemini generates images synchronously, so no external cancellation needed
 
       reply.send({
         success: true,

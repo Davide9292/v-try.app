@@ -2,7 +2,7 @@
 import { PrismaClient } from '@prisma/client'
 import { RedisService } from '../services/redis'
 import { CloudinaryService } from '../services/cloudinary'
-import { KIEAIService } from '../services/kie-ai'
+import { GeminiAIService } from '../services/gemini-ai'
 import { BullQueueService } from '../services/queue'
 import { WebSocketService } from '../services/websocket'
 
@@ -11,7 +11,7 @@ declare module 'fastify' {
     prisma: PrismaClient
     redis: RedisService
     cloudinary: CloudinaryService
-    kieAI: KIEAIService
+    geminiAI: GeminiAIService
     queue: BullQueueService
     websocket: WebSocketService
     config: {
@@ -22,7 +22,7 @@ declare module 'fastify' {
       redisUrl: string
       jwtSecret: string
       corsOrigins: string[]
-      kieApiKey: string
+      geminiApiKey: string
       cloudinaryCloudName: string
       cloudinaryApiKey: string
       cloudinaryApiSecret: string

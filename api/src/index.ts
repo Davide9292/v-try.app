@@ -38,7 +38,7 @@ const config = {
   corsOrigins: process.env.NODE_ENV === 'production' 
     ? true // Allow all origins for the extension to work on any website
     : true, // Allow all origins in development too
-  kieApiKey: process.env.KIE_AI_API_KEY!,
+  geminiApiKey: process.env.GEMINI_API_KEY!,
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
@@ -59,7 +59,7 @@ const requiredEnvVars = [
 // Optional vars that don't crash the app
 const optionalEnvVars = [
   'REDIS_URL',
-  'KIE_AI_API_KEY',
+  'GEMINI_API_KEY',
   'CLOUDINARY_CLOUD_NAME', 
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET'
@@ -92,11 +92,11 @@ export const prisma = new PrismaClient({
 })
 console.log('✅ Prisma client initialized')
 
-// Debug KIE AI key loading
-console.log('🔑 KIE AI Key debug at startup:', {
-  raw: process.env.KIE_AI_API_KEY ? `${process.env.KIE_AI_API_KEY.substring(0, 10)}...` : 'NOT SET',
-  length: process.env.KIE_AI_API_KEY ? process.env.KIE_AI_API_KEY.length : 0,
-  config: config.kieApiKey ? `${config.kieApiKey.substring(0, 10)}...` : 'NOT SET IN CONFIG'
+// Debug Gemini AI key loading
+console.log('🔑 Gemini API Key debug at startup:', {
+  raw: process.env.GEMINI_API_KEY ? `${process.env.GEMINI_API_KEY.substring(0, 10)}...` : 'NOT SET',
+  length: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
+  config: config.geminiApiKey ? `${config.geminiApiKey.substring(0, 10)}...` : 'NOT SET IN CONFIG'
 })
 
 // Build Fastify server
