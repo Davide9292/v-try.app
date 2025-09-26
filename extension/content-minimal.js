@@ -815,6 +815,14 @@ class VTryContentScript {
     
     // Set the new source with cache busting
     console.log('🔄 Setting new image source...')
+    
+    // CRITICAL: Remove srcset to prevent browser from overriding our src
+    if (originalImg.srcset) {
+      console.log('🔧 Removing srcset to prevent override:', originalImg.srcset)
+      originalImg.removeAttribute('srcset')
+      originalImg.removeAttribute('sizes')
+    }
+    
     originalImg.src = cacheBustedUrl
   }
 

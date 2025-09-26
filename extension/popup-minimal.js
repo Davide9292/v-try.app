@@ -664,11 +664,23 @@ class VTryApp {
     }
     
     results.innerHTML = this.feedResults.map(result => `
-      <div class="feed-item" onclick="window.vtryApp.viewFeedItem('${result.id}')">
-        <div class="feed-thumb" style="background-image: url(${result.generatedImageUrl || result.originalImageUrl}); background-size: cover; background-position: center;"></div>
-        <div class="feed-content">
+      <div class="feed-item">
+        <div class="feed-thumb" 
+             style="background-image: url(${result.generatedImageUrl || result.originalImageUrl}); background-size: cover; background-position: center; cursor: pointer;" 
+             onclick="window.vtryApp.viewFeedItem('${result.id}')" 
+             title="Click to expand image"></div>
+        <div class="feed-content" style="cursor: pointer;" onclick="window.vtryApp.viewFeedItem('${result.id}')">
           <div class="feed-title">${result.productInfo?.title || result.websiteInfo?.title || 'Product Try-On'}</div>
           <div class="feed-meta">${result.websiteInfo?.domain || 'Unknown'} • ${this.formatDate(result.createdAt)}</div>
+          ${result.productUrl ? `
+            <div class="feed-actions" style="margin-top: 4px;">
+              <a href="${result.productUrl}" target="_blank" class="feed-link" 
+                 style="font-size: 11px; color: #007BFF; text-decoration: none; display: inline-flex; align-items: center; gap: 2px;"
+                 onclick="event.stopPropagation()">
+                <span>🔗</span> View Product
+              </a>
+            </div>
+          ` : ''}
         </div>
       </div>
     `).join('')
@@ -793,7 +805,15 @@ class VTryApp {
       modal.innerHTML = `
         <div class="modal-content" style="max-width: 90vw; max-height: 90vh; background: white; border-radius: 8px; overflow: hidden;">
           <div class="modal-header" style="padding: 16px; border-bottom: 1px solid #E9ECEF; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 16px;">${item.productInfo?.title || 'Try-On Result'}</h3>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">${item.productInfo?.title || 'Try-On Result'}</h3>
+              ${item.productUrl ? `
+                <a href="${item.productUrl}" target="_blank" 
+                   style="font-size: 12px; color: #007BFF; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;">
+                  <span>🔗</span> View Original Product
+                </a>
+              ` : ''}
+            </div>
             <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
           </div>
           <div class="modal-body" style="padding: 20px; text-align: center;">
@@ -805,6 +825,9 @@ class VTryApp {
           <div class="modal-footer" style="padding: 16px; border-top: 1px solid #E9ECEF; display: flex; gap: 8px; justify-content: center;">
             <button onclick="window.vtryApp.downloadImage('${item.generatedImageUrl}')" class="btn btn-secondary btn-sm">Download</button>
             <button onclick="window.vtryApp.shareImage('${item.id}')" class="btn btn-secondary btn-sm">Share</button>
+            ${item.productUrl ? `
+              <button onclick="window.open('${item.productUrl}', '_blank')" class="btn btn-secondary btn-sm">View Product</button>
+            ` : ''}
           </div>
         </div>
       `
