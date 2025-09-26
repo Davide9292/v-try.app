@@ -1,4 +1,4 @@
-// Collections Routes - User Collections Management
+// Collections Routes - User's Try-On Collections
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
@@ -20,6 +20,13 @@ const addToCollectionSchema = z.object({
   resultId: z.string().min(1, 'Result ID is required'),
 })
 
+const getCollectionsSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  sortBy: z.enum(['newest', 'oldest', 'name', 'updated']).default('newest'),
+  isPublic: z.boolean().optional(),
+})
+
 // Types
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -36,95 +43,103 @@ interface CreateCollectionRequest extends AuthenticatedRequest {
 }
 
 interface UpdateCollectionRequest extends AuthenticatedRequest {
-  params: { collectionId: string }
+  params: {
+    collectionId: string
+  }
   body: z.infer<typeof updateCollectionSchema>
 }
 
-interface CollectionRequest extends AuthenticatedRequest {
-  params: { collectionId: string }
+interface CollectionParamsRequest extends AuthenticatedRequest {
+  params: {
+    collectionId: string
+  }
 }
 
 interface AddToCollectionRequest extends AuthenticatedRequest {
-  params: { collectionId: string }
+  params: {
+    collectionId: string
+  }
   body: z.infer<typeof addToCollectionSchema>
 }
 
 interface RemoveFromCollectionRequest extends AuthenticatedRequest {
-  params: { collectionId: string; resultId: string }
+  params: {
+    collectionId: string
+    resultId: string
+  }
+}
+
+interface GetCollectionsRequest extends AuthenticatedRequest {
+  query: z.infer<typeof getCollectionsSchema>
 }
 
 const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
   // Helper functions
-  const getCollectionWithItems = async (collectionId: string, userId: string) => {
-    return await fastify.prisma.collection.findFirst({
-      where: {
-        id: collectionId,
-        userId,
-      },
-      include: {
-        items: {
-          include: {
-            tryOnResult: {
-              select: {
-                id: true,
-                originalImageUrl: true,
-                generatedImageUrl: true,
-                generatedVideoUrl: true,
-                generationType: true,
-                productTitle: true,
-                productUrl: true,
-                websiteDomain: true,
-                aiStyle: true,
-                status: true,
-                views: true,
-                likes: true,
-                createdAt: true,
-              },
-            },
-          },
-          orderBy: { addedAt: 'desc' },
-        },
-        _count: {
-          select: { items: true },
-        },
-      },
-    })
+  const buildCollectionQuery = (userId: string, filters: any) => {
+    const where: any = { userId }
+
+    if (filters.isPublic !== undefined) {
+      where.isPublic = filters.isPublic
+    }
+
+    return where
   }
 
-  const updateCollectionCover = async (collectionId: string) => {
-    // Get the most recent item in the collection to use as cover
-    const latestItem = await fastify.prisma.collectionItem.findFirst({
-      where: { collectionId },
-      include: {
-        tryOnResult: {
-          select: { generatedImageUrl: true },
-        },
-      },
-      orderBy: { addedAt: 'desc' },
-    })
-
-    if (latestItem?.tryOnResult?.generatedImageUrl) {
-      await fastify.prisma.collection.update({
-        where: { id: collectionId },
-        data: { coverImageUrl: latestItem.tryOnResult.generatedImageUrl },
-      })
+  const buildOrderBy = (sortBy: string) => {
+    switch (sortBy) {
+      case 'oldest':
+        return { createdAt: 'asc' as const }
+      case 'name':
+        return { name: 'asc' as const }
+      case 'updated':
+        return { updatedAt: 'desc' as const }
+      case 'newest':
+      default:
+        return { createdAt: 'desc' as const }
     }
   }
 
   // GET /api/collections
   fastify.get('/', {
     preHandler: [fastify.authenticate]
-  }, async (request: AuthenticatedRequest, reply: FastifyReply) => {
+  }, async (request: GetCollectionsRequest, reply: FastifyReply) => {
     try {
+      // Validate query parameters
+      const filters = getCollectionsSchema.parse(request.query)
+
+      // Build query
+      const where = buildCollectionQuery(request.user.userId, filters)
+      const orderBy = buildOrderBy(filters.sortBy)
+
+      // Get total count
+      const total = await fastify.prisma.collection.count({ where })
+
+      // Get paginated collections
       const collections = await fastify.prisma.collection.findMany({
-        where: { userId: request.user.userId },
-        include: {
+        where,
+        orderBy,
+        skip: (filters.page - 1) * filters.limit,
+        take: filters.limit,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          coverImageUrl: true,
+          isPublic: true,
+          createdAt: true,
+          updatedAt: true,
           _count: {
-            select: { items: true },
+            select: {
+              items: true,
+            },
           },
         },
-        orderBy: { updatedAt: 'desc' },
       })
+
+      // Calculate pagination info
+      const totalPages = Math.ceil(total / filters.limit)
+      const hasNextPage = filters.page < totalPages
+      const hasPrevPage = filters.page > 1
 
       reply.send({
         success: true,
@@ -132,12 +147,31 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           collections: collections.map(collection => ({
             ...collection,
             itemCount: collection._count.items,
-            _count: undefined,
+            _count: undefined, // Remove the _count field from response
           })),
+          pagination: {
+            page: filters.page,
+            limit: filters.limit,
+            total,
+            totalPages,
+            hasNextPage,
+            hasPrevPage,
+          },
         },
       })
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid query parameters',
+            details: error.errors,
+          },
+        })
+      }
+
       fastify.log.error('Get collections error:', error)
       return reply.code(500).send({
         success: false,
@@ -154,6 +188,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: [fastify.authenticate]
   }, async (request: CreateCollectionRequest, reply: FastifyReply) => {
     try {
+      // Validate input
       const collectionData = createCollectionSchema.parse(request.body)
 
       // Check if collection name already exists for this user
@@ -168,7 +203,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(409).send({
           success: false,
           error: {
-            code: 'COLLECTION_NAME_EXISTS',
+            code: 'COLLECTION_NAME_TAKEN',
             message: 'A collection with this name already exists',
           },
         })
@@ -183,20 +218,20 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           description: collectionData.description,
           isPublic: collectionData.isPublic,
         },
-        include: {
-          _count: {
-            select: { items: true },
-          },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          coverImageUrl: true,
+          isPublic: true,
+          createdAt: true,
+          updatedAt: true,
         },
       })
 
       reply.code(201).send({
         success: true,
-        data: {
-          ...collection,
-          itemCount: collection._count.items,
-          _count: undefined,
-        },
+        data: collection,
       })
 
     } catch (error) {
@@ -205,7 +240,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid collection data',
+            message: 'Invalid input data',
             details: error.errors,
           },
         })
@@ -225,11 +260,61 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/collections/:collectionId
   fastify.get('/:collectionId', {
     preHandler: [fastify.authenticate]
-  }, async (request: CollectionRequest, reply: FastifyReply) => {
+  }, async (request: CollectionParamsRequest, reply: FastifyReply) => {
     try {
       const { collectionId } = request.params
 
-      const collection = await getCollectionWithItems(collectionId, request.user.userId)
+      // Get collection with items
+      const collection = await fastify.prisma.collection.findFirst({
+        where: {
+          id: collectionId,
+          userId: request.user.userId,
+        },
+        include: {
+          items: {
+            include: {
+              tryOnResult: {
+                select: {
+                  id: true,
+                  jobId: true,
+                  generationType: true,
+                  status: true,
+                  originalImageUrl: true,
+                  targetImageUrl: true,
+                  generatedImageUrl: true,
+                  generatedVideoUrl: true,
+                  thumbnailUrl: true,
+                  productUrl: true,
+                  productTitle: true,
+                  productBrand: true,
+                  websiteDomain: true,
+                  websiteTitle: true,
+                  aiModel: true,
+                  aiStyle: true,
+                  processingTime: true,
+                  cost: true,
+                  quality: true,
+                  views: true,
+                  likes: true,
+                  tags: true,
+                  createdAt: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      })
 
       if (!collection) {
         return reply.code(404).send({
@@ -241,15 +326,20 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
+      // Format response
+      const formattedCollection = {
+        ...collection,
+        items: collection.items.map(item => ({
+          id: item.id,
+          addedAt: item.createdAt,
+          result: item.tryOnResult,
+        })),
+        itemCount: collection.items.length,
+      }
+
       reply.send({
         success: true,
-        data: {
-          ...collection,
-          itemCount: collection._count.items,
-          results: collection.items.map(item => item.tryOnResult),
-          items: undefined,
-          _count: undefined,
-        },
+        data: formattedCollection,
       })
 
     } catch (error) {
@@ -272,7 +362,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       const { collectionId } = request.params
       const updateData = updateCollectionSchema.parse(request.body)
 
-      // Check if collection exists and belongs to user
+      // Verify collection belongs to user
       const existingCollection = await fastify.prisma.collection.findFirst({
         where: {
           id: collectionId,
@@ -290,7 +380,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Check if new name conflicts with existing collection
+      // Check if new name conflicts (if updating name)
       if (updateData.name && updateData.name !== existingCollection.name) {
         const nameConflict = await fastify.prisma.collection.findFirst({
           where: {
@@ -304,7 +394,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.code(409).send({
             success: false,
             error: {
-              code: 'COLLECTION_NAME_EXISTS',
+              code: 'COLLECTION_NAME_TAKEN',
               message: 'A collection with this name already exists',
             },
           })
@@ -318,9 +408,18 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           ...updateData,
           updatedAt: new Date(),
         },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          coverImageUrl: true,
+          isPublic: true,
+          createdAt: true,
+          updatedAt: true,
           _count: {
-            select: { items: true },
+            select: {
+              items: true,
+            },
           },
         },
       })
@@ -340,7 +439,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid update data',
+            message: 'Invalid input data',
             details: error.errors,
           },
         })
@@ -360,19 +459,19 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
   // DELETE /api/collections/:collectionId
   fastify.delete('/:collectionId', {
     preHandler: [fastify.authenticate]
-  }, async (request: CollectionRequest, reply: FastifyReply) => {
+  }, async (request: CollectionParamsRequest, reply: FastifyReply) => {
     try {
       const { collectionId } = request.params
 
-      // Verify ownership and delete
-      const deletedCollection = await fastify.prisma.collection.deleteMany({
+      // Verify collection belongs to user
+      const existingCollection = await fastify.prisma.collection.findFirst({
         where: {
           id: collectionId,
           userId: request.user.userId,
         },
       })
 
-      if (deletedCollection.count === 0) {
+      if (!existingCollection) {
         return reply.code(404).send({
           success: false,
           error: {
@@ -381,6 +480,11 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           },
         })
       }
+
+      // Delete collection (this will cascade to collection items)
+      await fastify.prisma.collection.delete({
+        where: { id: collectionId },
+      })
 
       reply.send({
         success: true,
@@ -407,7 +511,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       const { collectionId } = request.params
       const { resultId } = addToCollectionSchema.parse(request.body)
 
-      // Verify collection ownership
+      // Verify collection belongs to user
       const collection = await fastify.prisma.collection.findFirst({
         where: {
           id: collectionId,
@@ -425,7 +529,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Verify result ownership
+      // Verify result belongs to user
       const result = await fastify.prisma.tryOnResult.findFirst({
         where: {
           id: resultId,
@@ -443,13 +547,11 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Check if item is already in collection
-      const existingItem = await fastify.prisma.collectionItem.findUnique({
+      // Check if item already exists in collection
+      const existingItem = await fastify.prisma.collectionItem.findFirst({
         where: {
-          collectionId_tryOnResultId: {
-            collectionId,
-            tryOnResultId: resultId,
-          },
+          collectionId,
+          tryOnResultId: resultId,
         },
       })
 
@@ -458,7 +560,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           success: false,
           error: {
             code: 'ITEM_ALREADY_IN_COLLECTION',
-            message: 'Item is already in this collection',
+            message: 'This item is already in the collection',
           },
         })
       }
@@ -474,35 +576,46 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           tryOnResult: {
             select: {
               id: true,
+              jobId: true,
+              generationType: true,
+              status: true,
               originalImageUrl: true,
+              targetImageUrl: true,
               generatedImageUrl: true,
               generatedVideoUrl: true,
-              generationType: true,
-              productTitle: true,
+              thumbnailUrl: true,
               productUrl: true,
+              productTitle: true,
+              productBrand: true,
               websiteDomain: true,
+              websiteTitle: true,
+              aiModel: true,
               aiStyle: true,
-              status: true,
+              processingTime: true,
+              cost: true,
+              quality: true,
               views: true,
               likes: true,
+              tags: true,
               createdAt: true,
             },
           },
         },
       })
 
-      // Update collection's updated timestamp and cover image
-      await Promise.all([
-        fastify.prisma.collection.update({
-          where: { id: collectionId },
-          data: { updatedAt: new Date() },
-        }),
-        updateCollectionCover(collectionId),
-      ])
+      // Update collection's updated timestamp
+      await fastify.prisma.collection.update({
+        where: { id: collectionId },
+        data: { updatedAt: new Date() },
+      })
 
       reply.code(201).send({
         success: true,
-        data: collectionItem,
+        data: {
+          id: collectionItem.id,
+          addedAt: collectionItem.createdAt,
+          result: collectionItem.tryOnResult,
+        },
         message: 'Item added to collection successfully',
       })
 
@@ -512,7 +625,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid request data',
+            message: 'Invalid input data',
             details: error.errors,
           },
         })
@@ -536,7 +649,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { collectionId, resultId } = request.params
 
-      // Verify collection ownership
+      // Verify collection belongs to user
       const collection = await fastify.prisma.collection.findFirst({
         where: {
           id: collectionId,
@@ -554,15 +667,15 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Remove item from collection
-      const deletedItem = await fastify.prisma.collectionItem.deleteMany({
+      // Find and remove collection item
+      const collectionItem = await fastify.prisma.collectionItem.findFirst({
         where: {
           collectionId,
           tryOnResultId: resultId,
         },
       })
 
-      if (deletedItem.count === 0) {
+      if (!collectionItem) {
         return reply.code(404).send({
           success: false,
           error: {
@@ -572,14 +685,16 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Update collection's updated timestamp and cover image
-      await Promise.all([
-        fastify.prisma.collection.update({
-          where: { id: collectionId },
-          data: { updatedAt: new Date() },
-        }),
-        updateCollectionCover(collectionId),
-      ])
+      // Remove item from collection
+      await fastify.prisma.collectionItem.delete({
+        where: { id: collectionItem.id },
+      })
+
+      // Update collection's updated timestamp
+      await fastify.prisma.collection.update({
+        where: { id: collectionId },
+        data: { updatedAt: new Date() },
+      })
 
       reply.send({
         success: true,
@@ -601,11 +716,11 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/collections/:collectionId/items
   fastify.get('/:collectionId/items', {
     preHandler: [fastify.authenticate]
-  }, async (request: CollectionRequest, reply: FastifyReply) => {
+  }, async (request: CollectionParamsRequest, reply: FastifyReply) => {
     try {
       const { collectionId } = request.params
 
-      // Verify collection ownership
+      // Verify collection belongs to user
       const collection = await fastify.prisma.collection.findFirst({
         where: {
           id: collectionId,
@@ -630,22 +745,34 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
           tryOnResult: {
             select: {
               id: true,
+              jobId: true,
+              generationType: true,
+              status: true,
               originalImageUrl: true,
+              targetImageUrl: true,
               generatedImageUrl: true,
               generatedVideoUrl: true,
-              generationType: true,
-              productTitle: true,
+              thumbnailUrl: true,
               productUrl: true,
+              productTitle: true,
+              productBrand: true,
               websiteDomain: true,
+              websiteTitle: true,
+              aiModel: true,
               aiStyle: true,
-              status: true,
+              processingTime: true,
+              cost: true,
+              quality: true,
               views: true,
               likes: true,
+              tags: true,
               createdAt: true,
             },
           },
         },
-        orderBy: { addedAt: 'desc' },
+        orderBy: {
+          createdAt: 'desc',
+        },
       })
 
       reply.send({
@@ -655,11 +782,14 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
             id: collection.id,
             name: collection.name,
             description: collection.description,
+            isPublic: collection.isPublic,
           },
           items: items.map(item => ({
-            ...item.tryOnResult,
-            addedAt: item.addedAt,
+            id: item.id,
+            addedAt: item.createdAt,
+            result: item.tryOnResult,
           })),
+          itemCount: items.length,
         },
       })
 
