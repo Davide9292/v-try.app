@@ -100,10 +100,10 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           parameters: request.parameters
         }
         
-        console.log(`📡 Making KIE AI API call...`)
+        console.log(`📡 Making KIE AI API call with request:`, JSON.stringify(kieRequest, null, 2))
         const kieResponse = await kieAI.generateImage(kieRequest)
         
-        console.log(`📡 KIE AI Response:`, kieResponse)
+        console.log(`📡 KIE AI Response:`, JSON.stringify(kieResponse, null, 2))
         
         // Update database with KIE AI job ID and initial status
         await fastify.prisma.tryOnResult.update({
@@ -115,6 +115,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
         
         // Start polling KIE AI for completion
+        console.log(`🔄 Starting polling for KIE AI job: ${kieResponse.jobId}`)
         this.pollKIEAIStatus(jobId, kieResponse.jobId)
         
         return {
@@ -162,7 +163,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       const poll = async () => {
         try {
           const status = await kieAI.getJobStatus(kieJobId)
-          console.log(`📊 KIE AI Status for ${jobId}:`, status)
+          console.log(`📊 KIE AI Status for ${jobId}:`, JSON.stringify(status, null, 2))
           
           // Update our database with the latest status
           const updateData: any = {
@@ -189,14 +190,19 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
             updateData.error = status.error
           }
           
+          console.log(`📝 Updating database for job ${jobId} with:`, JSON.stringify(updateData, null, 2))
+          
           await fastify.prisma.tryOnResult.update({
             where: { jobId },
             data: updateData,
           })
           
+          console.log(`✅ Database updated for job ${jobId}`)
+          
           // If completed or failed, stop polling
           if (status.status === 'completed' || status.status === 'failed') {
-            console.log(`✅ KIE AI job ${jobId} finished with status: ${status.status}`)
+            console.log(`🏁 KIE AI job ${jobId} finished with status: ${status.status}`)
+            console.log(`🖼️ Final result URL: ${status.resultUrl}`)
             return
           }
           
