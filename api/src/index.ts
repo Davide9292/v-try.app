@@ -1,5 +1,5 @@
 // V-Try.app API Server - Enterprise Grade with Fastify
-import Fastify from 'fastify'
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
@@ -16,7 +16,7 @@ import feedRoutes from './routes/feed'
 import collectionsRoutes from './routes/collections'
 
 // Middleware
-import { authenticateToken, authPlugin } from './middleware/auth'
+import { authenticateToken } from './middleware/auth'
 import { validateRequest } from './middleware/validation'
 import { errorHandler, notFoundHandler } from './middleware/error'
 
@@ -167,8 +167,15 @@ const buildServer = async (): Promise<FastifyInstance> => {
   server.decorate('redisService', redisService)
   server.decorate('wsService', wsService)
 
-  // Register auth plugin
-  await server.register(authPlugin)
+  // Add authenticate decorator
+  server.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
+    return new Promise<void>((resolve, reject) => {
+      authenticateToken(request, reply, (err?: Error) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  })
 
   // Add middleware
   server.addHook('onRequest', async (request, reply) => {
