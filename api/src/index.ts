@@ -36,8 +36,8 @@ const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret: process.env.JWT_SECRET!,
   corsOrigins: process.env.NODE_ENV === 'production' 
-    ? ['https://v-try.app', 'https://www.v-try.app']
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    ? true // Allow all origins for the extension to work on any website
+    : true, // Allow all origins in development too
   kieApiKey: process.env.KIE_AI_API_KEY!,
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,

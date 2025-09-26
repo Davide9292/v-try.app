@@ -526,6 +526,24 @@ class VTryContentScript {
       // Update progress
       this.updateProgress(25, 'Processing image...')
       
+      // Prepare request payload
+      const payload = {
+        type: preferences.type || 'image',
+        targetImage: imageData,
+        style: preferences.style || 'realistic',
+        productUrl: window.location.href,
+        websiteInfo: {
+          domain: window.location.hostname,
+          title: document.title,
+          description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+          favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href') || document.querySelector('link[rel="shortcut icon"]')?.getAttribute('href') || '',
+        },
+      }
+      
+      console.log('🚀 Starting AI generation with payload:', payload)
+      console.log('🔑 Using API URL:', `${this.apiBaseUrl}/api/ai/generate`)
+      console.log('🎫 Using token:', tokens.accessToken ? 'Present' : 'Missing')
+      
       // Start generation with enhanced payload
       const response = await fetch(`${this.apiBaseUrl}/api/ai/generate`, {
         method: 'POST',
@@ -533,31 +551,30 @@ class VTryContentScript {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tokens.accessToken}`,
         },
-        body: JSON.stringify({
-          type: preferences.type || 'image',
-          targetImage: imageData,
-          style: preferences.style || 'realistic',
-          productUrl: window.location.href,
-          websiteInfo: {
-            domain: window.location.hostname,
-            title: document.title,
-            url: window.location.href,
-          },
-          productInfo: {
-            title: this.extractProductTitle(img),
-            category: this.detectProductCategory(img),
-          },
-        }),
+        body: JSON.stringify(payload),
       })
       
+      console.log('📡 API response status:', response.status, response.statusText)
+      
       if (!response.ok) {
-        const error = await response.json()
-        if (response.status === 401) {
-          throw new Error('Please sign in again')
-        } else if (response.status === 429) {
-          throw new Error('Daily limit exceeded. Upgrade for unlimited tries!')
+        let errorMessage = 'Generation failed'
+        try {
+          const error = await response.json()
+          console.error('❌ API error response:', error)
+          
+          if (response.status === 401) {
+            throw new Error('Please sign in again')
+          } else if (response.status === 429) {
+            throw new Error('Daily limit exceeded. Upgrade for unlimited tries!')
+          }
+          
+          errorMessage = error.error?.message || error.message || 'Generation failed'
+        } catch (parseError) {
+          console.error('❌ Failed to parse error response:', parseError)
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`
         }
-        throw new Error(error.error?.message || 'Generation failed')
+        
+        throw new Error(errorMessage)
       }
       
       const result = await response.json()
@@ -573,11 +590,19 @@ class VTryContentScript {
       }
       
     } catch (error) {
-      console.error('Generation failed:', error)
-      this.updateProgress(0, `Error: ${error.message}`)
+      console.error('❌ Generation failed:', error)
+      
+      // Check if it's a network error
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        this.updateProgress(0, 'Error: Network connection failed. Check your internet connection.')
+      } else if (error.message.includes('Failed to fetch')) {
+        this.updateProgress(0, 'Error: Cannot reach V-Try.app servers. Please try again later.')
+      } else {
+        this.updateProgress(0, `Error: ${error.message}`)
+      }
       
       // Show error for longer for important messages
-      const isImportantError = error.message.includes('sign in') || error.message.includes('limit')
+      const isImportantError = error.message.includes('sign in') || error.message.includes('limit') || error.message.includes('Network') || error.message.includes('servers')
       setTimeout(() => {
         this.hideGenerationModal()
       }, isImportantError ? 5000 : 3000)
