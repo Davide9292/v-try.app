@@ -21,8 +21,6 @@
     "noPropertyAccessFromIndexSignature": false,
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "suppressExcessPropertyErrors": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
