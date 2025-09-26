@@ -286,6 +286,32 @@ class VTryContentScript {
       .vtry-toast.success {
         background: #000000;
       }
+      
+      /* Undo overlay styles */
+      .vtry-undo-overlay {
+        position: fixed;
+        z-index: 999998;
+        pointer-events: auto;
+      }
+      
+      .vtry-undo-btn {
+        background: #000000;
+        color: #FFFFFF;
+        border: none;
+        padding: 6px 12px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        opacity: 0.9;
+      }
+      
+      .vtry-undo-btn:hover {
+        background: #212529;
+        opacity: 1;
+        transform: translateY(-1px);
+      }
     `
     
     document.head.appendChild(style)
@@ -414,6 +440,9 @@ class VTryContentScript {
     
     try {
       this.isProcessing = true
+      
+      // Store reference to original image for replacement
+      this.currentOriginalImage = img
       
       // Check authentication
       const isAuthenticated = await this.checkAuth()
@@ -672,7 +701,7 @@ class VTryContentScript {
             break
           case 'completed':
             this.updateProgress(100, 'Complete!')
-            this.showResult(status.data?.resultUrl || status.resultUrl)
+            this.replaceOriginalImage(status.data?.resultUrl || status.resultUrl)
             return
           case 'failed':
             throw new Error(status.data?.error || status.error || 'Generation failed')
@@ -717,25 +746,160 @@ class VTryContentScript {
     }
   }
 
-  showResult(resultUrl) {
-    if (!this.currentModal) return
+  replaceOriginalImage(resultUrl) {
+    if (!this.currentOriginalImage || !resultUrl) {
+      console.error('❌ Cannot replace image: missing original image or result URL')
+      return
+    }
     
-    const modalBody = this.currentModal.querySelector('.vtry-modal-body')
+    console.log('🔄 Replacing original image with generated result:', resultUrl)
     
-    modalBody.innerHTML = `
-      <img src="${resultUrl}" alt="Try-on result" class="vtry-result-image">
-      <div class="vtry-modal-actions">
-        <button class="vtry-btn vtry-btn-primary" onclick="window.vtryContent.downloadResult('${resultUrl}')">
-          Download
-        </button>
-        <button class="vtry-btn vtry-btn-secondary" onclick="window.vtryContent.shareResult('${resultUrl}')">
-          Share
-        </button>
-        <button class="vtry-btn vtry-btn-secondary" onclick="window.vtryContent.hideGenerationModal()">
-          Close
-        </button>
-      </div>
+    // Hide the modal first
+    this.hideGenerationModal()
+    
+    // Create a smooth transition effect
+    const originalImg = this.currentOriginalImage
+    const originalSrc = originalImg.src
+    
+    // Debug the original image element
+    console.log('🔍 Original image element:', originalImg)
+    console.log('🔍 Original image src:', originalSrc)
+    console.log('🔍 Original image dimensions:', originalImg.width, 'x', originalImg.height)
+    console.log('🔍 Original image styles:', window.getComputedStyle(originalImg).cssText)
+    console.log('🔍 Original image classes:', originalImg.className)
+    console.log('🔍 Original image parent:', originalImg.parentElement)
+    
+    // Store original src for potential undo
+    originalImg.setAttribute('data-vtry-original', originalSrc)
+    originalImg.setAttribute('data-vtry-generated', 'true')
+    
+    // Add transition effect
+    originalImg.style.transition = 'opacity 0.3s ease'
+    originalImg.style.opacity = '0.5'
+    
+    // Force cache busting by adding timestamp
+    const cacheBustedUrl = resultUrl + (resultUrl.includes('?') ? '&' : '?') + 't=' + Date.now()
+    console.log('🔄 Using cache-busted URL:', cacheBustedUrl)
+    
+    // Replace the image source
+    originalImg.onload = () => {
+      console.log('✅ Image onload event fired')
+      originalImg.style.opacity = '1'
+      
+      // Force a reflow to ensure the image is updated
+      originalImg.offsetHeight
+      
+      // Additional checks to ensure the image changed
+      const currentSrc = originalImg.src
+      console.log('📸 Current image src after load:', currentSrc)
+      console.log('📸 Expected src:', cacheBustedUrl)
+      
+      if (currentSrc.includes(cacheBustedUrl.split('?')[0])) {
+        console.log('✅ Image replacement verified successful')
+        this.showToast('Try-on complete! Image replaced successfully.', 'success')
+        this.addUndoOverlay(originalImg, originalSrc)
+      } else {
+        console.warn('⚠️ Image src mismatch after load, trying alternative approach')
+        this.forceImageReplacement(originalImg, cacheBustedUrl, originalSrc)
+      }
+    }
+    
+    originalImg.onerror = (e) => {
+      console.error('❌ Failed to load generated image:', e)
+      console.error('❌ Failed URL:', cacheBustedUrl)
+      console.error('❌ Reverting to original:', originalSrc)
+      originalImg.src = originalSrc
+      originalImg.style.opacity = '1'
+      this.showToast('Failed to load generated image', 'error')
+    }
+    
+    // Set the new source with cache busting
+    console.log('🔄 Setting new image source...')
+    originalImg.src = cacheBustedUrl
+  }
+
+  forceImageReplacement(originalImg, newUrl, originalSrc) {
+    console.log('🔧 Forcing image replacement with alternative approach')
+    
+    // Try multiple approaches to force the image change
+    
+    // Approach 1: Remove and re-add the src attribute
+    originalImg.removeAttribute('src')
+    setTimeout(() => {
+      originalImg.setAttribute('src', newUrl)
+    }, 50)
+    
+    // Approach 2: Clone and replace the image element
+    setTimeout(() => {
+      const currentSrc = originalImg.src
+      if (!currentSrc.includes(newUrl.split('?')[0])) {
+        console.log('🔄 Cloning and replacing image element')
+        
+        const newImg = originalImg.cloneNode(true)
+        newImg.src = newUrl
+        newImg.onload = () => {
+          console.log('✅ Cloned image loaded successfully')
+          this.showToast('Try-on complete! Image replaced successfully.', 'success')
+          this.addUndoOverlay(newImg, originalSrc)
+        }
+        
+        originalImg.parentNode.replaceChild(newImg, originalImg)
+        this.currentOriginalImage = newImg // Update reference
+      }
+    }, 200)
+  }
+
+  addUndoOverlay(img, originalSrc) {
+    // Remove any existing overlay
+    const existingOverlay = img.parentElement.querySelector('.vtry-undo-overlay')
+    if (existingOverlay) {
+      existingOverlay.remove()
+    }
+    
+    // Create undo overlay
+    const overlay = document.createElement('div')
+    overlay.className = 'vtry-undo-overlay'
+    overlay.innerHTML = `
+      <button class="vtry-undo-btn" title="Restore original image">
+        ↶ Undo
+      </button>
     `
+    
+    // Position overlay
+    const rect = img.getBoundingClientRect()
+    overlay.style.cssText = `
+      position: absolute;
+      top: ${rect.top + window.scrollY + 8}px;
+      left: ${rect.left + window.scrollX + 8}px;
+      z-index: 999998;
+      pointer-events: auto;
+    `
+    
+    // Add click handler
+    overlay.querySelector('.vtry-undo-btn').addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      
+      // Restore original image
+      img.src = originalSrc
+      img.removeAttribute('data-vtry-original')
+      img.removeAttribute('data-vtry-generated')
+      
+      // Remove overlay
+      overlay.remove()
+      
+      this.showToast('Original image restored', 'success')
+    })
+    
+    // Add to page
+    document.body.appendChild(overlay)
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      if (overlay.parentElement) {
+        overlay.remove()
+      }
+    }, 10000)
   }
 
   async downloadResult(url) {
