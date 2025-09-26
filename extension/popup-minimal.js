@@ -14,28 +14,50 @@ class VTryApp {
     console.log('🚀 V-Try.app Extension initializing...')
     
     try {
+      // Wait a bit for auth service to load
+      await this.waitForAuthService()
+      
       // Check authentication
+      console.log('🔍 Checking authentication status...')
       const isAuthenticated = await this.checkAuth()
+      console.log('🔐 Authentication result:', isAuthenticated)
       
       if (!isAuthenticated) {
+        console.log('❌ Not authenticated, showing auth screen')
         this.showState('auth-state')
       } else {
+        console.log('✅ Authenticated, getting user data...')
         const user = await this.getCurrentUser()
+        console.log('👤 User data:', user)
         
-        if (!user.faceImageUrl || !user.bodyImageUrl) {
+        if (!user || (!user.faceImageUrl || !user.bodyImageUrl)) {
+          console.log('📷 Profile incomplete, showing setup screen')
           this.showState('setup-state')
         } else {
+          console.log('🎉 Profile complete, showing main app')
           this.showMainApp(user)
         }
       }
     } catch (error) {
-      console.error('Initialization failed:', error)
+      console.error('❌ Initialization failed:', error)
       this.showError('Failed to initialize app')
     } finally {
       this.hideLoading()
     }
     
     this.setupEventListeners()
+  }
+
+  async waitForAuthService() {
+    // Wait up to 2 seconds for auth service to be available
+    for (let i = 0; i < 20; i++) {
+      if (window.vtryAuth) {
+        console.log('✅ Auth service found')
+        return
+      }
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    console.log('⚠️ Auth service not found, using fallback')
   }
 
   setupEventListeners() {
@@ -83,14 +105,24 @@ class VTryApp {
     try {
       // Use the auth service instead of custom implementation
       if (window.vtryAuth) {
+        console.log('🔧 Using auth service for check')
         await window.vtryAuth.init()
-        return window.vtryAuth.isAuthenticated()
+        const isAuth = window.vtryAuth.isAuthenticated()
+        console.log('🔐 Auth service result:', isAuth)
+        return isAuth
       }
       
       // Fallback to manual check
+      console.log('🔧 Using fallback auth check')
       const tokens = await this.getStoredTokens()
-      if (!tokens?.accessToken) return false
+      console.log('🎫 Stored tokens:', tokens ? 'Found' : 'Not found')
       
+      if (!tokens?.accessToken) {
+        console.log('❌ No access token found')
+        return false
+      }
+      
+      console.log('🌐 Verifying token with API...')
       // Verify token with API
       const response = await fetch(`${this.apiBaseUrl}/api/user/profile`, {
         headers: {
@@ -98,9 +130,10 @@ class VTryApp {
         },
       })
       
+      console.log('🌐 API response status:', response.status, response.ok)
       return response.ok
     } catch (error) {
-      console.error('Auth check failed:', error)
+      console.error('❌ Auth check failed:', error)
       return false
     }
   }
@@ -409,7 +442,11 @@ class VTryApp {
         throw new Error('Failed to get user profile')
       }
 
-      return await response.json()
+      const result = await response.json()
+      console.log('👤 API user response:', result)
+      
+      // Extract user data from API response format
+      return result.success ? result.data : result
     } catch (error) {
       console.error('Failed to get current user:', error)
       throw error
