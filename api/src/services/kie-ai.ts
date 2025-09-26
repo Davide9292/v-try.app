@@ -36,62 +36,70 @@ export class KIEAIService {
   }
 
   /**
-   * Generate an AI try-on image using KIE AI GPT-4O model
+   * Generate an AI try-on image using Nano Banana Edit model
    */
   async generateImage(request: KIEAIGenerationRequest): Promise<KIEAIGenerationResponse> {
     try {
       // Create a detailed prompt for virtual try-on
       const tryOnPrompt = this.createTryOnPrompt(request)
       
-      const response = await fetch(`${this.baseUrl}/gpt4o-image/generate`, {
+      // Prepare image URLs - we'll use the user's face/body image and target image
+      const imageUrls = []
+      if (request.userFaceImage) imageUrls.push(request.userFaceImage)
+      if (request.userBodyImage && request.userBodyImage !== request.userFaceImage) {
+        imageUrls.push(request.userBodyImage)
+      }
+      if (request.targetImage) imageUrls.push(request.targetImage)
+      
+      // Limit to 5 images as per API spec
+      const finalImageUrls = imageUrls.slice(0, 5)
+      
+      console.log('🎨 Creating KIE AI task with:', {
+        prompt: tryOnPrompt,
+        imageCount: finalImageUrls.length,
+        model: 'google/nano-banana-edit'
+      })
+      
+      // Step 1: Create the generation task
+      const createResponse = await fetch(`${this.baseUrl}/jobs/createTask`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: tryOnPrompt,
-          aspectRatio: request.parameters?.width && request.parameters?.height 
-            ? `${request.parameters.width}:${request.parameters.height}`
-            : '1:1',
+          model: 'google/nano-banana-edit',
+          input: {
+            prompt: tryOnPrompt,
+            image_urls: finalImageUrls,
+            output_format: 'png',
+            image_size: 'auto'
+          }
         }),
       })
 
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`KIE AI API error: ${response.status} - ${error}`)
+      if (!createResponse.ok) {
+        const error = await createResponse.text()
+        throw new Error(`KIE AI API error: ${createResponse.status} - ${error}`)
       }
 
-      const result = await response.json() as any
-      console.log('🎨 KIE AI Full Response:', JSON.stringify(result, null, 2))
-
-      // Try multiple possible locations for the image URL
-      const imageUrl = result.url || 
-                      result.image_url || 
-                      result.data?.url || 
-                      result.data?.image_url ||
-                      result.output?.url ||
-                      result.output?.image_url ||
-                      result.images?.[0]?.url ||
-                      result.images?.[0] ||
-                      result.result?.url ||
-                      result.result?.image_url
+      const createResult = await createResponse.json() as any
+      console.log('🎨 KIE AI Task Created:', JSON.stringify(createResult, null, 2))
       
-      console.log('🔍 Extracted image URL:', imageUrl)
-      
-      if (!imageUrl) {
-        console.error('❌ No image URL found in KIE AI response. Full response:', JSON.stringify(result, null, 2))
-        console.error('❌ Tried these fields: url, image_url, data.url, data.image_url, output.url, output.image_url, images[0].url, images[0], result.url, result.image_url')
-        throw new Error('No image URL returned from KIE AI')
+      if (createResult.code !== 200 || !createResult.data?.taskId) {
+        throw new Error(`Failed to create KIE AI task: ${createResult.msg || 'Unknown error'}`)
       }
+
+      const taskId = createResult.data.taskId
+      console.log('✅ KIE AI Task ID:', taskId)
 
       return {
-        jobId: `kie_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        status: 'completed', // KIE AI returns completed images immediately
-        resultUrl: imageUrl,
-        processingTime: 3000, // Immediate generation
+        jobId: taskId,
+        status: 'queued', // Task starts as queued
+        resultUrl: undefined, // Will be available after completion
+        processingTime: undefined,
         cost: 0.05, // Estimated cost
-        quality: 0.9,
+        quality: undefined,
       }
 
     } catch (error) {
@@ -156,11 +164,11 @@ export class KIEAIService {
   }
 
   /**
-   * Check the status of a generation job
+   * Check the status of a generation job using correct KIE AI endpoint
    */
-  async getJobStatus(jobId: string): Promise<KIEAIGenerationResponse> {
+  async getJobStatus(taskId: string): Promise<KIEAIGenerationResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/jobs/${jobId}`, {
+      const response = await fetch(`${this.baseUrl}/jobs/recordInfo?taskId=${taskId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
@@ -173,16 +181,40 @@ export class KIEAIService {
       }
 
       const result = await response.json() as any
+      console.log('📊 KIE AI Status Response:', JSON.stringify(result, null, 2))
+
+      if (result.code !== 200) {
+        throw new Error(`KIE AI status check failed: ${result.msg || 'Unknown error'}`)
+      }
+
+      const data = result.data
+      const state = data.state // waiting, success, fail
+      
+      // Parse resultJson if available
+      let resultUrls = []
+      if (data.resultJson) {
+        try {
+          const resultData = JSON.parse(data.resultJson)
+          resultUrls = resultData.resultUrls || []
+        } catch (e) {
+          console.warn('Failed to parse resultJson:', data.resultJson)
+        }
+      }
+
+      // Map KIE AI states to our status format
+      let mappedStatus = 'queued'
+      if (state === 'waiting') mappedStatus = 'processing'
+      else if (state === 'success') mappedStatus = 'completed'
+      else if (state === 'fail') mappedStatus = 'failed'
 
       return {
-        jobId: result.job_id,
-        status: this.mapStatus(result.status),
-        resultUrl: result.output?.image_url || result.output?.video_url,
-        thumbnailUrl: result.output?.thumbnail_url,
-        error: result.error,
-        processingTime: result.processing_time,
-        cost: result.cost,
-        quality: result.output?.quality_score,
+        jobId: taskId,
+        status: mappedStatus,
+        resultUrl: resultUrls[0] || undefined, // First result URL
+        processingTime: data.costTime,
+        cost: 0.05, // Estimated cost
+        quality: state === 'success' ? 0.9 : undefined,
+        error: data.failMsg || undefined,
       }
 
     } catch (error) {
@@ -310,31 +342,27 @@ export class KIEAIService {
   }
 
   /**
-   * Create a detailed prompt for virtual try-on using KIE AI
+   * Create a detailed prompt for virtual try-on using Nano Banana Edit model
    */
   private createTryOnPrompt(request: KIEAIGenerationRequest): string {
     const styleDescriptions = {
-      realistic: 'photorealistic, high-quality, detailed',
-      artistic: 'artistic style, creative interpretation',
-      fashion: 'fashion photography style, professional lighting',
-      lifestyle: 'lifestyle photography, natural setting'
-    }
-
-    const typeDescriptions = {
-      image: 'a high-quality photograph',
-      video: 'a high-quality image suitable for video'
+      realistic: 'photorealistic, high-quality, detailed, professional photography',
+      artistic: 'artistic style, creative interpretation, stylized',
+      fashion: 'fashion photography style, professional studio lighting, magazine quality',
+      lifestyle: 'lifestyle photography, natural setting, casual atmosphere'
     }
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
-    const typeDesc = typeDescriptions[request.type] || typeDescriptions.image
 
-    // Create a comprehensive prompt for virtual try-on
-    return `Create ${typeDesc} showing a person wearing the clothing item from the product image. 
-    Style: ${styleDesc}. 
-    The person should be wearing the exact clothing item shown in the product image, 
-    with proper fit and realistic appearance. 
-    Ensure the clothing looks natural and well-fitted on the person.
-    High quality, professional photography style, good lighting, realistic textures.
+    // Create a comprehensive prompt for virtual try-on using the Nano Banana Edit model
+    // This model works by editing the input images based on the prompt
+    return `Transform the person in the image to be wearing the clothing item shown in the product image. 
+    Make it look like a professional virtual try-on where the person is wearing the exact clothing item.
+    The clothing should fit naturally and realistically on the person's body.
+    Maintain the person's appearance and pose while seamlessly integrating the new clothing.
+    Style: ${styleDesc}.
+    Ensure proper lighting, shadows, and fabric texture to make it look authentic.
+    The final result should look like the person is actually wearing this clothing item.
     ${request.prompt || ''}`
   }
 
