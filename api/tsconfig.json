@@ -21,7 +21,6 @@
     "removeComments": true,
     "noEmitOnError": false,
     "suppressImplicitAnyIndexErrors": false,
-    "noStrictGenericChecks": true,
     "useDefineForClassFields": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
