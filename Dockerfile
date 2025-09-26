@@ -9,7 +9,7 @@ COPY api/package*.json ./
 COPY api/tsconfig.json ./
 
 # Install all dependencies (needed for build)
-RUN npm ci
+RUN npm install
 
 # Copy source code and schema from api directory
 COPY api/src/ ./src/
