@@ -191,7 +191,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Get feed error:', error)
+      fastify.log.error('Get feed error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -296,7 +296,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Search feed error:', error)
+      fastify.log.error('Search feed error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -367,7 +367,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get result error:', error)
+      fastify.log.error('Get result error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -459,7 +459,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Update result error:', error)
+      fastify.log.error('Update result error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -506,7 +506,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Delete result error:', error)
+      fastify.log.error('Delete result error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -585,7 +585,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Like result error:', error)
+      fastify.log.error('Like result error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -645,7 +645,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Unlike result error:', error)
+      fastify.log.error('Unlike result error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -713,7 +713,7 @@ const feedRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get feed stats error:', error)
+      fastify.log.error('Get feed stats error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {

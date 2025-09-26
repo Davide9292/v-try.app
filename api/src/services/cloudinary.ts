@@ -220,7 +220,7 @@ export class CloudinaryService {
       // Search for all user images
       const searchResult = await cloudinary.search
         .expression(`folder:vtry-app/* AND public_id:*${userId}_*`)
-        .sort_by([['created_at', 'desc']])
+        .sort_by('created_at', 'desc')
         .max_results(500)
         .execute()
 

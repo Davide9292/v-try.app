@@ -242,7 +242,6 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           websiteDomain: generateData.websiteInfo.domain,
           websiteTitle: generateData.websiteInfo.title,
           websiteDescription: generateData.websiteInfo.description,
-          websiteFavicon: generateData.websiteInfo.favicon,
           aiModel: generateData.type === 'video' ? 'veo3' : 'nano_banana',
           aiPrompt: `Create a ${generateData.style} virtual try-on of the person wearing the product from the image`,
           aiStyle: generateData.style.toUpperCase() as any,
@@ -257,7 +256,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
           status: 'QUEUED',
           isPublic: false,
           tags: [generateData.style, productInfo.category].filter(Boolean),
-        },
+        } as any,
       })
 
       // Start AI generation (mock for now)
@@ -297,7 +296,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Generate error:', error)
+      fastify.log.error('Generate error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -342,7 +341,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get status error:', error)
+      fastify.log.error('Get status error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -388,7 +387,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Cancel generation error:', error)
+      fastify.log.error('Cancel generation error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -431,7 +430,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get models error:', error)
+      fastify.log.error('Get models error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -477,7 +476,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get queue status error:', error)
+      fastify.log.error('Get queue status error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {

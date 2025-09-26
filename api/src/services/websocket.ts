@@ -52,7 +52,7 @@ export class WebSocketService {
     })
 
     connection.socket.on('error', (error: Error) => {
-      this.fastify.log.error('WebSocket error:', error)
+      this.fastify.log.error('WebSocket error:', error as any)
       this.handleDisconnection(client)
     })
 
@@ -96,7 +96,7 @@ export class WebSocketService {
           this.fastify.log.warn(`Unknown message type: ${data.type}`)
       }
     } catch (error) {
-      this.fastify.log.error('Error handling WebSocket message:', error)
+      this.fastify.log.error('Error handling WebSocket message:', error as any)
       this.sendError(client, 'Invalid message format')
     }
   }
@@ -152,7 +152,7 @@ export class WebSocketService {
       this.fastify.log.info(`WebSocket client authenticated: ${client.id} -> ${session.user.id}`)
 
     } catch (error) {
-      this.fastify.log.error('WebSocket authentication error:', error)
+      this.fastify.log.error('WebSocket authentication error:', error as any)
       this.sendError(client, 'Authentication failed')
     }
   }
@@ -253,7 +253,7 @@ export class WebSocketService {
       })
 
     } catch (error) {
-      this.fastify.log.error('Error handling generation status request:', error)
+      this.fastify.log.error('Error handling generation status request:', error as any)
       this.sendError(client, 'Failed to get generation status')
     }
   }
@@ -350,7 +350,7 @@ export class WebSocketService {
         client.socket.send(JSON.stringify(message))
       }
     } catch (error) {
-      this.fastify.log.error('Error sending message to client:', error)
+      this.fastify.log.error('Error sending message to client:', error as any)
       this.handleDisconnection(client)
     }
   }

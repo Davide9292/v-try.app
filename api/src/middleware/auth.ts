@@ -145,7 +145,7 @@ export const authenticateToken = async (
     done()
 
   } catch (error) {
-    request.log.error('Authentication error:', error)
+    request.log.error('Authentication error:', error as any)
 
     if (error.name === 'JsonWebTokenError') {
       return reply.code(401).send({

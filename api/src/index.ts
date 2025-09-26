@@ -156,8 +156,8 @@ const buildServer = async (): Promise<FastifyInstance> => {
         environment: config.nodeEnv,
       }
     } catch (error) {
-      server.log.error('Health check failed:', error)
-      throw server.httpErrors?.serviceUnavailable('Service unhealthy') || new Error('Service unhealthy')
+      server.log.error('Health check failed:', error as any)
+      throw new Error('Service unhealthy')
     }
   })
 

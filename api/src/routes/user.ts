@@ -81,7 +81,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       
       return mockUrl
     } catch (error) {
-      fastify.log.error(`Image processing failed for ${type}:`, error)
+      fastify.log.error(`Image processing failed for ${type}:`, error as any)
       throw new Error(`Failed to process ${type} image`)
     }
   }
@@ -147,7 +147,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get profile error:', error)
+      fastify.log.error('Get profile error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -231,7 +231,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Update profile error:', error)
+      fastify.log.error('Update profile error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -321,7 +321,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Upload images error:', error)
+      fastify.log.error('Upload images error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -379,7 +379,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get usage error:', error)
+      fastify.log.error('Get usage error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -406,7 +406,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Delete account error:', error)
+      fastify.log.error('Delete account error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -444,7 +444,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get sessions error:', error)
+      fastify.log.error('Get sessions error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -496,7 +496,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Delete session error:', error)
+      fastify.log.error('Delete session error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {

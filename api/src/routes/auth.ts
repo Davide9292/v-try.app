@@ -197,7 +197,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Login error:', error)
+      fastify.log.error('Login error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -324,7 +324,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Signup error:', error)
+      fastify.log.error('Signup error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -408,7 +408,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Token refresh error:', error)
+      fastify.log.error('Token refresh error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -435,7 +435,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Logout error:', error)
+      fastify.log.error('Logout error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -462,7 +462,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Logout all error:', error)
+      fastify.log.error('Logout all error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {

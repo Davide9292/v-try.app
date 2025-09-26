@@ -172,7 +172,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Get collections error:', error)
+      fastify.log.error('Get collections error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -246,7 +246,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Create collection error:', error)
+      fastify.log.error('Create collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -343,7 +343,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get collection error:', error)
+      fastify.log.error('Get collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -445,7 +445,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Update collection error:', error)
+      fastify.log.error('Update collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -492,7 +492,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Delete collection error:', error)
+      fastify.log.error('Delete collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -631,7 +631,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      fastify.log.error('Add to collection error:', error)
+      fastify.log.error('Add to collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -702,7 +702,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Remove from collection error:', error)
+      fastify.log.error('Remove from collection error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
@@ -794,7 +794,7 @@ const collectionsRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
     } catch (error) {
-      fastify.log.error('Get collection items error:', error)
+      fastify.log.error('Get collection items error:', error as any)
       return reply.code(500).send({
         success: false,
         error: {
