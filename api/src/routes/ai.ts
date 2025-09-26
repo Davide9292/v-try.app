@@ -49,11 +49,15 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
   // Mock KIE AI service for development
   const mockKIEAI = {
     async generateImage(request: any): Promise<any> {
-      const jobId = nanoid()
+      const jobId = request.jobId // Use the jobId passed from the main function
+      
+      console.log(`🤖 Mock AI: Starting generation for job ${jobId}`)
       
       // Simulate processing time
       setTimeout(async () => {
         try {
+          console.log(`🤖 Mock AI: Completing job ${jobId}`)
+          
           // Update job status to completed
           await fastify.prisma.tryOnResult.update({
             where: { jobId },
@@ -66,10 +70,12 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
             },
           })
           
+          console.log(`✅ Mock AI: Job ${jobId} completed successfully`)
+          
           // Notify via WebSocket (if implemented)
           // wsService.notifyUser(request.userId, 'generation_complete', { jobId })
         } catch (error) {
-          console.error('Mock generation failed:', error)
+          console.error(`❌ Mock AI: Generation failed for job ${jobId}:`, error)
         }
       }, Math.random() * 20000 + 5000) // 5-25 seconds
       
@@ -275,6 +281,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         style: generateData.style,
         parameters: generateData.parameters,
         userId: request.user.userId,
+        jobId: jobId, // Pass the actual jobId from database
       })
 
       // Update usage statistics
@@ -329,6 +336,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request: StatusRequest, reply: FastifyReply) => {
     try {
       const { jobId } = request.params
+      console.log(`📊 Status check for job: ${jobId} by user: ${request.user.userId}`)
 
       // Verify job belongs to user
       const tryOnResult = await fastify.prisma.tryOnResult.findFirst({
@@ -339,6 +347,7 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
       if (!tryOnResult) {
+        console.log(`❌ Job ${jobId} not found for user ${request.user.userId}`)
         return reply.code(404).send({
           success: false,
           error: {
@@ -348,8 +357,11 @@ const aiRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
+      console.log(`✅ Job ${jobId} found, current status: ${tryOnResult.status}`)
+
       // Get status from AI service
       const status = await mockKIEAI.getStatus(jobId)
+      console.log(`📊 Returning status for job ${jobId}:`, status)
 
       reply.send({
         success: true,

@@ -602,10 +602,13 @@ class VTryContentScript {
       const result = await response.json()
       
       if (result.success) {
+        console.log('✅ Generation started successfully:', result.data)
+        
         // Update progress
         this.updateProgress(50, 'AI is working...')
         
         // Poll for completion with real-time updates
+        console.log('🔄 Starting to poll for job status:', result.data.jobId)
         await this.pollGenerationStatus(result.data.jobId, tokens.accessToken)
       } else {
         throw new Error(result.error?.message || 'Failed to start generation')
@@ -635,19 +638,26 @@ class VTryContentScript {
     const maxAttempts = 60 // 2 minutes max
     let attempts = 0
     
+    console.log(`🔄 Starting polling for job ${jobId}`)
+    
     const poll = async () => {
       try {
+        console.log(`📡 Polling attempt ${attempts + 1}/${maxAttempts} for job ${jobId}`)
+        
         const response = await fetch(`${this.apiBaseUrl}/api/ai/status/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
         })
         
+        console.log(`📡 Status API response: ${response.status} ${response.statusText}`)
+        
         if (!response.ok) {
           throw new Error('Failed to check status')
         }
         
         const status = await response.json()
+        console.log('📊 Job status response:', status)
         
         switch (status.status) {
           case 'queued':
