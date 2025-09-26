@@ -46,24 +46,33 @@ export class GeminiAIService {
       // Convert images to base64 format for Gemini API
       console.log('🔄 Converting images to base64...')
       const userFaceBase64 = await this.extractBase64Data(request.userFaceImage)
+      const userBodyBase64 = await this.extractBase64Data(request.userBodyImage)
       const targetBase64 = await this.extractBase64Data(request.targetImage)
       
-      console.log('🖼️ User face image converted, size:', userFaceBase64.length, 'chars')
-      console.log('🛍️ Target image converted, size:', targetBase64.length, 'chars')
+      console.log('👤 User face image converted, size:', userFaceBase64.length, 'chars')
+      console.log('🏃 User body image converted, size:', userBodyBase64.length, 'chars')
+      console.log('📸 Product image converted, size:', targetBase64.length, 'chars')
       
-      // Prepare the request payload with user and target images
+      // Prepare the request payload with all 3 images in correct order
       const contents = [
         {
           parts: [
             { text: tryOnPrompt },
-            // User's face/body image
+            // Image 1: User's face
             {
               inlineData: {
                 mimeType: this.getMimeType(request.userFaceImage),
                 data: userFaceBase64
               }
             },
-            // Target product image
+            // Image 2: User's body  
+            {
+              inlineData: {
+                mimeType: this.getMimeType(request.userBodyImage),
+                data: userBodyBase64
+              }
+            },
+            // Image 3: Product photo
             {
               inlineData: {
                 mimeType: this.getMimeType(request.targetImage),
@@ -181,50 +190,34 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
 
-    // Model replacement prompt - replace the model in the product image with the user
-    return `Create a model replacement image by replacing the model in the product photo with the person from the user photos.
+    // Simplified and clear prompt based on Gemini API best practices
+    return `Replace the model in the product photo with this person.
 
-TASK: Replace the model/person in the product image with the user, using BOTH the user's face photo and body photo for complete accuracy.
+IMAGES PROVIDED:
+1. Person's face (reference for facial features and head)
+2. Person's body (reference for body proportions and build) 
+3. Product photo (scene to recreate with the person as the model)
 
-INPUT IMAGES:
-- First image: User's face photo (for facial features, hair, skin tone)
-- Second image: User's body photo (for body proportions, physique, posture reference)  
-- Third image: Product photo (original scene to preserve)
+INSTRUCTIONS:
+Take the person from images 1 and 2, and place them in the exact scene from image 3.
 
-STEP-BY-STEP INSTRUCTIONS:
-1. Take the complete scene from the product image - background, lighting, setting, pose, clothing, and composition
-2. Replace the model's face and head using the user's face photo (facial features, hair, skin tone, head shape)
-3. Replace the model's body using the user's body photo (body proportions, physique, build, natural posture)
-4. Combine both user references to create a complete and accurate representation
-5. Keep everything else from the product image exactly the same - pose, clothes, background, lighting, shadows
+Keep from the product photo:
+- Same background and setting
+- Same pose and body position  
+- Same clothing and styling
+- Same lighting and shadows
+- Same camera angle and composition
 
-CRITICAL REQUIREMENTS:
-- Use the EXACT scene, background, and setting from the product image
-- Use the EXACT clothing, colors, patterns, and styling from the product image  
-- Use the EXACT pose, body position, and composition from the product image
-- Combine facial features from the user's face photo with body characteristics from the user's body photo
-- Replace the model's face, hair, and head entirely with the user's appearance from the face photo
-- Replace the model's body shape, build, and proportions with the user's physique from the body photo
-- Maintain the same lighting direction, shadows, and photographic style as the product image
-- Adjust the clothing fit naturally to match the user's actual body proportions from both photos
-- Preserve all product image details: background elements, props, studio setup, etc.
-- Create a seamless fusion that looks like the user (with their real face and body) was the original model
+Replace from the product photo:
+- The model's face with the person's face (image 1)
+- The model's body with the person's body proportions (image 2)
+- Adjust clothing fit to match the person's actual size
 
-PHOTOGRAPHIC CONSISTENCY:
-- Match the exact camera angle and perspective from the product image
-- Maintain the same lighting setup and shadow patterns
-- Keep the same color grading and photographic style: ${styleDesc}
-- Preserve the same image quality and professional studio aesthetic
+Style: ${styleDesc}
 
-RESULT GOAL:
-The final image should look like the user (with their actual face from the face photo and actual body from the body photo) was the original model in the product photoshoot. The result should be a perfect fusion that combines:
-- The user's real facial features, hair, and skin tone from their face photo
-- The user's real body proportions, build, and physique from their body photo  
-- The product photo's exact scene, clothing, pose, and professional quality
+The result should look like this person was the original model in the product photoshoot.
 
-Someone should not be able to tell that any replacement was made - it should appear as if the user was always the model in that exact scene wearing those clothes.
-
-${request.prompt ? `Additional context: ${request.prompt}` : ''}`
+${request.prompt ? `\n\n${request.prompt}` : ''}`
   }
 
   /**
