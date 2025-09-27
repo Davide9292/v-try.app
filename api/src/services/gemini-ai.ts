@@ -188,8 +188,8 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic;
 
-    // Ultra-simple approach based on Gemini's "Multi-Image to Image" capability
-    return `Take the person from the first two images and put them in the third image wearing the same clothes and pose. ${styleDesc}`;
+    // Focus on face/body replacement while keeping original clothes
+    return `Replace the model in the third image with the person from the first two images. Keep the original clothes, pose, background and lighting from the third image exactly the same. Only change the face and body shape, but keep everything else identical. ${styleDesc}`;
   }
 
   /**
