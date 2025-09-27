@@ -92,7 +92,9 @@ export class GeminiAIService {
           'x-goog-api-key': this.apiKey,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ contents })
+        body: JSON.stringify({ 
+          contents: [{ parts: contents }]
+        })
       })
       
       console.log('📡 Gemini API response status:', response.status)
