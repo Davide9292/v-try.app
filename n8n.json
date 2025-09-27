@@ -1,0 +1,346 @@
+{
+  "name": "V-Try Try-On Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "tryon-generate",
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.body || $json;\nfunction toBase64(s) {\n  if (!s) return '';\n  if (s.startsWith('data:')) return s.split(',')[1];\n  return s;\n}\nreturn [{\n  userFaceB64: toBase64(body.userFaceImage),\n  userBodyB64: toBase64(body.userBodyImage),\n  targetB64: toBase64(body.targetImage),\n  style: body.style || 'realistic',\n  jobId: body.jobId || body.id || ''\n}];"
+      },
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $credentials.GoogleGeminiApiKey.apiKey }}",
+        "options": {},
+        "bodyParametersJson": "{\n  \"contents\": [{\n    \"parts\": [\n      { \"text\": \"Answer strictly with yes or no: Does this image contain a visible human person wearing clothing?\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $json.targetB64 }}\" } }\n    ]\n  }]\n}"
+      },
+      "name": "Detect Human (Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const parts = ($json.candidates?.[0]?.content?.parts || []);\nconst text = parts.map(p => p.text).filter(Boolean).join(' ').trim().toLowerCase();\nreturn [{ hasHuman: text.startsWith('y') }];"
+      },
+      "name": "Parse Human",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.hasHuman}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "Has Human?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key={{ $credentials.GoogleGeminiApiKey.apiKey }}",
+        "options": {},
+        "bodyParametersJson": "{\n  \"generationConfig\": { \"temperature\": 0.2, \"topP\": 0.8 },\n  \"contents\": [{\n    \"parts\": [\n      { \"text\": \"There are three images provided in order. FIRST=USER_FACE, SECOND=USER_BODY, THIRD=TARGET_PRODUCT_SCENE.\" },\n      { \"text\": \"TASK: Virtual try-on (replace identity only). Use the FIRST and SECOND images to replace the identity of the person in the THIRD image. Preserve product, pose, background, and lighting. The result must clearly be the user. No added text.\" },\n      { \"text\": \"FIRST IMAGE: USER_FACE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userFaceB64 }}\" } },\n      { \"text\": \"SECOND IMAGE: USER_BODY\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userBodyB64 }}\" } },\n      { \"text\": \"THIRD IMAGE: TARGET_PRODUCT_SCENE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.targetB64 }}\" } }\n    ]\n  }]\n}"
+      },
+      "name": "Attempt 1 (Model)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key={{ $credentials.GoogleGeminiApiKey.apiKey }}",
+        "options": {},
+        "bodyParametersJson": "{\n  \"generationConfig\": { \"temperature\": 0.2, \"topP\": 0.8 },\n  \"contents\": [{\n    \"parts\": [\n      { \"text\": \"There are three images provided in order. FIRST=USER_FACE, SECOND=USER_BODY, THIRD=TARGET_PRODUCT_SCENE.\" },\n      { \"text\": \"TASK: Virtual try-on from product-only photo. Render the user wearing the exact product shown in the THIRD image. Preserve product identity (color, pattern, graphics) and packshot style. No added text.\" },\n      { \"text\": \"FIRST IMAGE: USER_FACE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userFaceB64 }}\" } },\n      { \"text\": \"SECOND IMAGE: USER_BODY\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userBodyB64 }}\" } },\n      { \"text\": \"THIRD IMAGE: TARGET_PRODUCT_SCENE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.targetB64 }}\" } }\n    ]\n  }]\n}"
+      },
+      "name": "Attempt 1 (Packshot)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function extractB64(r){\n  const parts = (r.candidates?.[0]?.content?.parts || []);\n  for (const p of parts) { if (p.inlineData?.data) return p.inlineData.data; if (p.inline_data?.data) return p.inline_data.data; }\n  return '';\n}\nconst res = $json;\nreturn [{ generatedB64: extractB64(res) }];"
+      },
+      "name": "Extract Image",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const crypto = require('crypto');\nfunction sha(b64){ return crypto.createHash('sha256').update(b64||'').digest('hex'); }\nconst generated = $json.generatedB64 || '';\nconst target = $items(2).json.targetB64;\nconst same = generated && target && sha(generated) === sha(target);\nreturn [{ isSame: !!same }];"
+      },
+      "name": "Same Image?",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isSame}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "Need Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key={{ $credentials.GoogleGeminiApiKey.apiKey }}",
+        "options": {},
+        "bodyParametersJson": "{\n  \"generationConfig\": { \"temperature\": 0.1, \"topP\": 0.8 },\n  \"contents\": [{\n    \"parts\": [\n      { \"text\": \"There are three images provided in order. FIRST=USER_FACE, SECOND=USER_BODY, THIRD=TARGET_PRODUCT_SCENE.\" },\n      { \"text\": \"IMPORTANT: Never return the THIRD image unchanged. Replace the identity with the user while preserving product, pose, lighting, and background. No added text.\" },\n      { \"text\": \"FIRST IMAGE: USER_FACE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userFaceB64 }}\" } },\n      { \"text\": \"SECOND IMAGE: USER_BODY\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.userBodyB64 }}\" } },\n      { \"text\": \"THIRD IMAGE: TARGET_PRODUCT_SCENE\" },\n      { \"inline_data\": { \"mime_type\": \"image/jpeg\", \"data\": \"{{ $items(1).json.targetB64 }}\" } }\n    ]\n  }]\n}"
+      },
+      "name": "Retry Strict",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const res = $json;\nconst parts = (res.candidates?.[0]?.content?.parts || []);\nlet b64 = '';\nfor (const p of parts) { if (p.inlineData?.data) { b64 = p.inlineData.data; break; } if (p.inline_data?.data) { b64 = p.inline_data.data; break; } }\nconst url = b64 ? `data:image/png;base64,${b64}` : '';\nreturn [{ resultUrl: url, jobId: $items(2).json.jobId, style: $items(2).json.style }];"
+      },
+      "name": "Build Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseData": "={{ $json }}"
+        }
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Detect Human (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Human (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Parse Human",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Human": {
+      "main": [
+        [
+          {
+            "node": "Has Human?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Human?": {
+      "main": [
+        [
+          {
+            "node": "Attempt 1 (Model)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Attempt 1 (Packshot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt 1 (Model)": {
+      "main": [
+        [
+          {
+            "node": "Extract Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt 1 (Packshot)": {
+      "main": [
+        [
+          {
+            "node": "Extract Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Image": {
+      "main": [
+        [
+          {
+            "node": "Same Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Same Image?": {
+      "main": [
+        [
+          {
+            "node": "Need Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Need Retry?": {
+      "main": [
+        [
+          {
+            "node": "Retry Strict",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Strict": {
+      "main": [
+        [
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Result": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
