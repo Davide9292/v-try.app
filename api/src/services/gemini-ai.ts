@@ -178,42 +178,30 @@ export class GeminiAIService {
   }
 
   /**
-   * Create a detailed prompt for virtual try-on using Gemini
+   * Create a detailed prompt for virtual try-on using Gemini, following best practices.
    */
   private createTryOnPrompt(request: GeminiGenerationRequest): string {
     const styleDescriptions = {
-      realistic: 'photorealistic, high-quality, detailed, professional photography',
-      artistic: 'artistic style, creative interpretation, stylized',
-      fashion: 'fashion photography style, professional studio lighting, magazine quality',
-      lifestyle: 'lifestyle photography, natural setting, casual atmosphere'
-    }
+      realistic: 'A photorealistic, high-resolution, professionally shot fashion photograph.',
+      artistic: 'An artistic interpretation, stylized and creative.',
+      fashion: 'A high-fashion, magazine-quality editorial shot with professional studio lighting.',
+      lifestyle: 'A natural, casual lifestyle photograph in a realistic setting.'
+    };
 
-    const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic
+    const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic;
 
-    // Ultra-clear prompt to avoid confusion between user and model images
-    return `You will receive 3 images. Create a new image following these exact instructions:
+    // This new prompt is descriptive and narrative, based on the official documentation.
+    // It tells the model what to create as a final scene.
+    return `Create a new image by combining the elements from the three provided images.
 
-IMAGE 1: A person's FACE ONLY (this is the USER - use this face)
-IMAGE 2: A person's BODY/FULL FIGURE (this is the USER - use this body shape) 
-IMAGE 3: A FASHION/PRODUCT PHOTO with a model wearing clothes (this is the ORIGINAL SCENE to copy)
+Follow these steps:
+1.  Take the person's face from the first image and their body shape and proportions from the second image. This is our model.
+2.  Take the clothes, pose, background, and lighting from the third image. This is our scene.
+3.  Place our model (from images 1 and 2) into the scene (from image 3), making them wear the clothes naturally.
 
-TASK:
-Take the USER'S face from Image 1 and the USER'S body from Image 2, then place this USER into the exact same scene as Image 3, replacing the original model.
+The final image should be a single, cohesive picture. ${styleDesc} Ensure the model's face from the first image and body type from the second image are preserved accurately.
 
-CRITICAL - DO NOT USE:
-- The face of the model in Image 3 (IGNORE this face completely)
-- The body of the model in Image 3 (IGNORE this body, only use as pose reference)
-
-CRITICAL - DO USE:
-- The USER'S face from Image 1 (put this face on the final result)
-- The USER'S body proportions from Image 2 (adjust clothes to fit this body)
-- The scene, clothes, pose, background, and lighting from Image 3
-
-The result must show the USER (from images 1 and 2) wearing the clothes in the same scene as Image 3.
-
-Style: ${styleDesc}
-
-${request.prompt ? `\n\n${request.prompt}` : ''}`
+${request.prompt ? `\nAdditional user instructions: ${request.prompt}` : ''}`;
   }
 
   /**
