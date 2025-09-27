@@ -53,33 +53,29 @@ export class GeminiAIService {
       console.log('🏃 User body image converted, size:', userBodyBase64.length, 'chars')
       console.log('📸 Product image converted, size:', targetBase64.length, 'chars')
       
-      // Prepare the request payload with all 3 images in correct order
+      // Prepare the request payload following Gemini documentation format exactly
       const contents = [
+        { text: tryOnPrompt },
+        // Image 1: User's face
         {
-          parts: [
-            { text: tryOnPrompt },
-            // Image 1: User's face
-            {
-              inlineData: {
-                mimeType: this.getMimeType(request.userFaceImage),
-                data: userFaceBase64
-              }
-            },
-            // Image 2: User's body  
-            {
-              inlineData: {
-                mimeType: this.getMimeType(request.userBodyImage),
-                data: userBodyBase64
-              }
-            },
-            // Image 3: Product photo
-            {
-              inlineData: {
-                mimeType: this.getMimeType(request.targetImage),
-                data: targetBase64
-              }
-            }
-          ]
+          inlineData: {
+            mimeType: this.getMimeType(request.userFaceImage),
+            data: userFaceBase64
+          }
+        },
+        // Image 2: User's body  
+        {
+          inlineData: {
+            mimeType: this.getMimeType(request.userBodyImage),
+            data: userBodyBase64
+          }
+        },
+        // Image 3: Product photo
+        {
+          inlineData: {
+            mimeType: this.getMimeType(request.targetImage),
+            data: targetBase64
+          }
         }
       ]
 
