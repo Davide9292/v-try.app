@@ -228,11 +228,11 @@ export const checkDailyLimits = async (
   const currentUsage = usage ? 
     (type === 'image' ? usage.imagesGenerated : usage.videosGenerated) : 0
 
-  // Define limits based on subscription
+  // Define limits based on subscription (increased FREE limits)
   const limits = {
-    FREE: { image: 10, video: 2 },
-    PRO: { image: 100, video: 20 },
-    ENTERPRISE: { image: 1000, video: 200 },
+    FREE: { image: 1000, video: 50 },
+    PRO: { image: 5000, video: 200 },
+    ENTERPRISE: { image: 10000, video: 1000 },
   }
 
   const limit = limits[subscription as keyof typeof limits]?.[type] || limits.FREE[type]

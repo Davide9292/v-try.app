@@ -49,9 +49,10 @@ export class GeminiAIService {
       const userBodyBase64 = await this.extractBase64Data(request.userBodyImage)
       const targetBase64 = await this.extractBase64Data(request.targetImage)
       
-      console.log('👤 User face image converted, size:', userFaceBase64.length, 'chars')
-      console.log('🏃 User body image converted, size:', userBodyBase64.length, 'chars')
-      console.log('📸 Product image converted, size:', targetBase64.length, 'chars')
+      console.log('👤 Image 1 (User face) converted, size:', userFaceBase64.length, 'chars')
+      console.log('🏃 Image 2 (User body) converted, size:', userBodyBase64.length, 'chars')
+      console.log('📸 Image 3 (Product/Model) converted, size:', targetBase64.length, 'chars')
+      console.log('🎯 Image order: 1=Face, 2=Body, 3=Product (this order is CRITICAL for Gemini)')
       
       // Prepare the request payload following Gemini documentation format exactly
       const contents = [
@@ -188,8 +189,9 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic;
 
-    // Focus on face/body replacement while keeping original clothes
-    return `Replace the model in the third image with the person from the first two images. Keep the original clothes, pose, background and lighting from the third image exactly the same. Only change the face and body shape, but keep everything else identical. ${styleDesc}`;
+    // CRITICAL: Define exact image order for Gemini to avoid confusion
+    // Image 1 = User's face, Image 2 = User's body, Image 3 = Product with original model
+    return `Replace the person in the THIRD image with the person from the FIRST and SECOND images. Use the face from the FIRST image and body shape from the SECOND image. Keep all clothes, pose, background and lighting from the THIRD image exactly the same. ${styleDesc}`;
   }
 
   /**
