@@ -1,6 +1,5 @@
 // Google Gemini AI Service - Nano Banana Image Generation
 // Using the official Google Gemini API
-import { createHash } from 'crypto'
 
 export interface GeminiGenerationRequest {
   type: 'image' | 'video'
@@ -87,29 +86,12 @@ export class GeminiAIService {
       console.log('🔑 Using API key:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET')
       console.log('📊 Request payload size:', JSON.stringify(payload).length, 'bytes')
 
-      const attemptOnce = async (strict: boolean, altOrder: boolean = false) => {
+      const attemptOnce = async (strict: boolean) => {
         const strictHint = strict ? 'IMPORTANT: Never return the THIRD image unchanged. Ensure the subject clearly becomes the USER. If you cannot replace, regenerate until it is replaced.' : ''
-        let parts = contents
-
-        if (altOrder) {
-          const rolePrimingAlt = `There are three images provided in order. FIRST=TARGET_PRODUCT_SCENE, SECOND=USER_FACE photo, THIRD=USER_BODY photo.`
-          parts = [
-            { text: rolePrimingAlt },
-            { text: tryOnPrompt },
-            { text: 'FIRST IMAGE: TARGET_PRODUCT_SCENE' },
-            { inlineData: { mimeType: target.mimeType, data: target.base64 } },
-            { text: 'SECOND IMAGE: USER_FACE' },
-            { inlineData: { mimeType: userFace.mimeType, data: userFace.base64 } },
-            { text: 'THIRD IMAGE: USER_BODY' },
-            { inlineData: { mimeType: userBody.mimeType, data: userBody.base64 } },
-          ]
-        }
-
         const attemptPayload = strict ? {
           ...payload,
-          generationConfig: { temperature: 0.1, topP: 0.8 },
-          contents: [{ parts: [{ text: (altOrder ? (parts[0] as any).text : rolePriming) }, { text: strictHint + ' ' + tryOnPrompt }, ...parts.slice(2) ] }]
-        } : (altOrder ? { ...payload, contents: [{ parts }] } : payload)
+          contents: [{ parts: [{ text: rolePriming }, { text: strictHint + ' ' + tryOnPrompt }, { text: 'FIRST IMAGE: USER_FACE' }, { inlineData: { mimeType: userFace.mimeType, data: userFace.base64 } }, { text: 'SECOND IMAGE: USER_BODY' }, { inlineData: { mimeType: userBody.mimeType, data: userBody.base64 } }, { text: 'THIRD IMAGE: TARGET_PRODUCT_SCENE' }, { inlineData: { mimeType: target.mimeType, data: target.base64 } }] }]
+        } : payload
 
         const response = await fetch(`${this.baseUrl}/models/gemini-2.5-flash-image-preview:generateContent`, {
           method: 'POST',
@@ -161,12 +143,6 @@ export class GeminiAIService {
       if (this.isLikelySameImage(generatedImageData, target.base64)) {
         console.warn('⚠️ Generated image appears identical to target. Retrying with stricter instructions...')
         generatedImageData = await attemptOnce(true)
-      }
-
-      // If still unchanged, perform a third attempt with alternate ordering emphasis
-      if (this.isLikelySameImage(generatedImageData, target.base64)) {
-        console.warn('⚠️ Second attempt still identical. Trying alternate image ordering...')
-        generatedImageData = await attemptOnce(true, true)
       }
 
       // Convert base64 to data URL (PNG default)
@@ -226,34 +202,31 @@ export class GeminiAIService {
 
     // Two scenarios: target has a model vs. product-only (flat lay, mannequin, packshot)
     if (hasHumanInTarget) {
-      return `TASK: Virtual try-on (replace identity only).
+      return `TASK: Virtual try-on.
 Use the FIRST image (USER_FACE) and SECOND image (USER_BODY) to replace the identity of the person in the THIRD image (TARGET_PRODUCT_SCENE).
 REQUIREMENTS:
-- Replace the face with the user's face; preserve hair length and style if visible in THIRD image unless covered by product.
-- Match body shape to the user's body while strictly preserving pose, garment drape, and garment fit.
-- Preserve 100% of the clothing/product details: brand logos, graphics, seams, textures, colors, patterns, prints.
-- Preserve scene: composition, camera angle, background, lighting, reflections, shadows, and depth of field.
-- The resulting person must clearly be the user, not the original model.
-NEGATIVE INSTRUCTIONS (must not happen):
-- Do not change or re-design the product.
-- Do not add or remove accessories or props.
-- Do not crop or reframe.
-- Do not output text or watermarks.
+- Replace the face with the user's face and match skin tone and proportions.
+- Match the body shape to the user's body while preserving the original pose.
+- Do not change the clothing/product, logos, text, pattern, color, fabric, fit, or accessories in the THIRD image.
+- Do not change composition, camera angle, background, lighting, reflections, or shadows in the THIRD image.
+- Remove the original person's identity; the person must clearly become the user.
+CONSTRAINTS:
+- No added text, watermarks, or artifacts.
+- No extra people or objects.
 OUTPUT: One edited image only. ${styleDesc}`
     }
 
     // Product-only target: compose the user wearing the exact product in a matching style
     return `TASK: Virtual try-on from product-only photo.
-Use the FIRST image (USER_FACE) and SECOND image (USER_BODY) to render the user wearing the exact product shown in the THIRD image (TARGET_PRODUCT_SCENE).
+Use the FIRST image (USER_FACE) and SECOND image (USER_BODY) to render the user wearing the product shown in the THIRD image (TARGET_PRODUCT_SCENE).
 REQUIREMENTS:
-- Produce a believable human with the user's face and approximate body shape.
-- Preserve product identity at pixel level: exact color, pattern, graphics, fabric sheen, stitching, trims.
-- Respect lighting and background of the THIRD image: if packshot on white, keep pure white; only add contact shadows that match the packshot style.
-- Choose a neutral pose that aligns with the product orientation; avoid occluding product details.
-NEGATIVE INSTRUCTIONS:
-- Do not modify product design or typography.
-- Do not add busy backgrounds or props.
-- Do not add text or watermarks.
+- Recreate a natural human model with the user's face and approximate body shape.
+- Keep the product pixel-level identity: same garment, same color, pattern, texture, stitching, logos, and graphics.
+- Match the product photo's lighting, white balance, and material highlights. Preserve background characteristics (e.g., pure white packshot stays pure white), add realistic contact shadows only if present in the target.
+- Choose a neutral pose that showcases the product similar to its orientation in the THIRD image.
+CONSTRAINTS:
+- No alterations to the product design or text.
+- No extra props or busy backgrounds.
 OUTPUT: One generated image only. ${styleDesc}`
   }
 
@@ -383,14 +356,12 @@ OUTPUT: One generated image only. ${styleDesc}`
    */
   private isLikelySameImage(generatedB64: string, targetB64: string): boolean {
     if (!generatedB64 || !targetB64) return false
-    // Hash-based strong equality check
-    const genHash = createHash('sha256').update(generatedB64).digest('hex')
-    const tgtHash = createHash('sha256').update(targetB64).digest('hex')
-    if (genHash === tgtHash) return true
-    // Weak heuristics as a fallback
+    if (generatedB64.length === targetB64.length && generatedB64.substring(0, 64) === targetB64.substring(0, 64)) {
+      return true
+    }
     const lengthRatio = Math.min(generatedB64.length, targetB64.length) / Math.max(generatedB64.length, targetB64.length)
-    const headEqual = generatedB64.substring(0, 32) === targetB64.substring(0, 32)
-    return headEqual && lengthRatio > 0.995
+    const headEqual = generatedB64.substring(0, 24) === targetB64.substring(0, 24)
+    return headEqual && lengthRatio > 0.98
   }
 
   /**
