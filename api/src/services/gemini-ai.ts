@@ -178,30 +178,20 @@ export class GeminiAIService {
   }
 
   /**
-   * Create a detailed prompt for virtual try-on using Gemini, following best practices.
+   * Create an ultra-simple prompt following Gemini documentation examples
    */
   private createTryOnPrompt(request: GeminiGenerationRequest): string {
     const styleDescriptions = {
-      realistic: 'A photorealistic, high-resolution, professionally shot fashion photograph.',
-      artistic: 'An artistic interpretation, stylized and creative.',
-      fashion: 'A high-fashion, magazine-quality editorial shot with professional studio lighting.',
-      lifestyle: 'A natural, casual lifestyle photograph in a realistic setting.'
+      realistic: 'Make it photorealistic.',
+      artistic: 'Make it artistic and stylized.',
+      fashion: 'Make it a high-fashion editorial photo.',
+      lifestyle: 'Make it natural and casual.'
     };
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic;
 
-    // This new prompt is descriptive and narrative, based on the official documentation.
-    // It tells the model what to create as a final scene.
-    return `Create a new image by combining the elements from the three provided images.
-
-Follow these steps:
-1.  Take the person's face from the first image and their body shape and proportions from the second image. This is our model.
-2.  Take the clothes, pose, background, and lighting from the third image. This is our scene.
-3.  Place our model (from images 1 and 2) into the scene (from image 3), making them wear the clothes naturally.
-
-The final image should be a single, cohesive picture. ${styleDesc} Ensure the model's face from the first image and body type from the second image are preserved accurately.
-
-${request.prompt ? `\nAdditional user instructions: ${request.prompt}` : ''}`;
+    // Ultra-simple approach based on Gemini's "Multi-Image to Image" capability
+    return `Take the person from the first two images and put them in the third image wearing the same clothes and pose. ${styleDesc}`;
   }
 
   /**
