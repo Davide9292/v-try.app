@@ -39,114 +39,103 @@ export class GeminiAIService {
     try {
       console.log('🎨 Starting Gemini AI image generation...')
       
-      // Resolve image sources and MIME types robustly
-      console.log('🔄 Converting images to base64 with accurate MIME types...')
-      const [userFace, userBody, target] = await Promise.all([
-        this.resolveImage(request.userFaceImage),
-        this.resolveImage(request.userBodyImage),
-        this.resolveImage(request.targetImage),
-      ])
-
-      console.log('👤 Image 1 (User face) converted, size:', userFace.base64.length, 'chars')
-      console.log('🏃 Image 2 (User body) converted, size:', userBody.base64.length, 'chars')
-      console.log('📸 Image 3 (Product/Model) converted, size:', target.base64.length, 'chars')
-      console.log('🖼️ Detected types:', { face: userFace.mimeType, body: userBody.mimeType, target: target.mimeType })
-      console.log('🎯 Image order: 1=Face, 2=Body, 3=Target (CRITICAL)')
-
-      // Detect whether the target image already contains a human model to choose the right instruction
-      const hasHumanInTarget = await this.detectTargetHasHumanModel(target.base64, target.mimeType)
-      console.log('🕵️ Target contains human model?', hasHumanInTarget)
-
       // Create a detailed prompt for virtual try-on
-      const tryOnPrompt = this.createTryOnPrompt(request, hasHumanInTarget)
+      const tryOnPrompt = this.createTryOnPrompt(request)
       console.log('📝 Generated prompt:', tryOnPrompt)
-
-      // Prepare role-labeled parts to disambiguate images for Gemini
-      const rolePriming = `There are three images provided in order. FIRST=USER_FACE photo, SECOND=USER_BODY photo, THIRD=TARGET_PRODUCT_SCENE.`
+      
+      // Convert images to base64 format for Gemini API
+      console.log('🔄 Converting images to base64...')
+      const userFaceBase64 = await this.extractBase64Data(request.userFaceImage)
+      const userBodyBase64 = await this.extractBase64Data(request.userBodyImage)
+      const targetBase64 = await this.extractBase64Data(request.targetImage)
+      
+      console.log('👤 Image 1 (User face) converted, size:', userFaceBase64.length, 'chars')
+      console.log('🏃 Image 2 (User body) converted, size:', userBodyBase64.length, 'chars')
+      console.log('📸 Image 3 (Product/Model) converted, size:', targetBase64.length, 'chars')
+      console.log('🎯 Image order: 1=Face, 2=Body, 3=Product (this order is CRITICAL for Gemini)')
+      
+      // Prepare the request payload following Gemini documentation format exactly
       const contents = [
-        { text: rolePriming },
         { text: tryOnPrompt },
-        { text: 'FIRST IMAGE: USER_FACE' },
-        { inlineData: { mimeType: userFace.mimeType, data: userFace.base64 } },
-        { text: 'SECOND IMAGE: USER_BODY' },
-        { inlineData: { mimeType: userBody.mimeType, data: userBody.base64 } },
-        { text: 'THIRD IMAGE: TARGET_PRODUCT_SCENE' },
-        { inlineData: { mimeType: target.mimeType, data: target.base64 } },
-      ]
-
-      const payload = {
-        contents: [{ parts: contents }],
-        generationConfig: {
-          temperature: 0.2,
-          topP: 0.8,
+        // Image 1: User's face
+        {
+          inlineData: {
+            mimeType: this.getMimeType(request.userFaceImage),
+            data: userFaceBase64
+          }
+        },
+        // Image 2: User's body  
+        {
+          inlineData: {
+            mimeType: this.getMimeType(request.userBodyImage),
+            data: userBodyBase64
+          }
+        },
+        // Image 3: Product photo
+        {
+          inlineData: {
+            mimeType: this.getMimeType(request.targetImage),
+            data: targetBase64
+          }
         }
-      }
+      ]
 
       console.log('📡 Making Gemini API request...')
       console.log('🔑 Using API key:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET')
-      console.log('📊 Request payload size:', JSON.stringify(payload).length, 'bytes')
-
-      const attemptOnce = async (strict: boolean) => {
-        const strictHint = strict ? 'IMPORTANT: Never return the THIRD image unchanged. Ensure the subject clearly becomes the USER. If you cannot replace, regenerate until it is replaced.' : ''
-        const attemptPayload = strict ? {
-          ...payload,
-          contents: [{ parts: [{ text: rolePriming }, { text: strictHint + ' ' + tryOnPrompt }, { text: 'FIRST IMAGE: USER_FACE' }, { inlineData: { mimeType: userFace.mimeType, data: userFace.base64 } }, { text: 'SECOND IMAGE: USER_BODY' }, { inlineData: { mimeType: userBody.mimeType, data: userBody.base64 } }, { text: 'THIRD IMAGE: TARGET_PRODUCT_SCENE' }, { inlineData: { mimeType: target.mimeType, data: target.base64 } }] }]
-        } : payload
-
-        const response = await fetch(`${this.baseUrl}/models/gemini-2.5-flash-image-preview:generateContent`, {
-          method: 'POST',
-          headers: {
-            'x-goog-api-key': this.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(attemptPayload)
+      console.log('📊 Request payload size:', JSON.stringify({ contents }).length, 'bytes')
+      console.log('🖼️ User image type:', this.getMimeType(request.userFaceImage))
+      console.log('🛍️ Target image type:', this.getMimeType(request.targetImage))
+      
+      // Call Gemini API
+      const response = await fetch(`${this.baseUrl}/models/gemini-2.5-flash-image-preview:generateContent`, {
+        method: 'POST',
+        headers: {
+          'x-goog-api-key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          contents: [{ parts: contents }]
         })
+      })
+      
+      console.log('📡 Gemini API response status:', response.status)
+      console.log('📡 Gemini API response headers:', Object.fromEntries(response.headers.entries()))
 
-        console.log('📡 Gemini API response status:', response.status)
-        console.log('📡 Gemini API response headers:', Object.fromEntries(response.headers.entries()))
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('❌ Gemini API error:', response.status, errorText)
-          throw new Error(`Gemini API error: ${response.status} - ${errorText}`)
-        }
-
-        const result = await response.json()
-        console.log('✅ Gemini API response received')
-        console.log('📄 Response structure:', JSON.stringify(result, null, 2))
-
-        const candidate = (result as any).candidates?.[0]
-        if (!candidate) {
-          console.error('❌ No candidates in response:', result)
-          throw new Error('No candidates returned from Gemini API')
-        }
-
-        let generatedImageData: string | null = null
-        for (const part of candidate.content.parts) {
-          if (part.inlineData) {
-            generatedImageData = part.inlineData.data
-            break
-          }
-        }
-
-        if (!generatedImageData) {
-          throw new Error('No image data returned from Gemini API')
-        }
-
-        return generatedImageData
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Gemini API error:', response.status, errorText)
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`)
       }
 
-      // First attempt (normal)
-      let generatedImageData = await attemptOnce(false)
+      const result = await response.json()
+      console.log('✅ Gemini API response received')
+      console.log('📄 Response structure:', JSON.stringify(result, null, 2))
+      
+      // Extract the generated image from the response
+      const candidate = (result as any).candidates?.[0]
+      if (!candidate) {
+        console.error('❌ No candidates in response:', result)
+        throw new Error('No candidates returned from Gemini API')
+      }
+      
+      console.log('🎯 Candidate found:', JSON.stringify(candidate, null, 2))
 
-      // If the model appears to have returned the original target unchanged, retry once with stricter instructions
-      if (this.isLikelySameImage(generatedImageData, target.base64)) {
-        console.warn('⚠️ Generated image appears identical to target. Retrying with stricter instructions...')
-        generatedImageData = await attemptOnce(true)
+      // Find the image part in the response
+      let generatedImageData = null
+      for (const part of candidate.content.parts) {
+        if (part.inlineData) {
+          generatedImageData = part.inlineData.data
+          break
+        }
       }
 
-      // Convert base64 to data URL (PNG default)
+      if (!generatedImageData) {
+        throw new Error('No image data returned from Gemini API')
+      }
+
+      // Convert base64 to data URL
       const resultUrl = `data:image/png;base64,${generatedImageData}`
+      
       console.log('🖼️ Generated image data length:', generatedImageData.length)
       console.log('✅ Gemini generation completed successfully')
 
@@ -154,9 +143,9 @@ export class GeminiAIService {
         jobId: `gemini_${Date.now()}`,
         status: 'completed',
         resultUrl: resultUrl,
-        processingTime: 3000,
-        cost: 0.03,
-        quality: 0.95,
+        processingTime: 3000, // Gemini is typically very fast
+        cost: 0.03, // Estimated cost based on Google pricing
+        quality: 0.95, // High quality
       }
 
     } catch (error) {
@@ -190,7 +179,7 @@ export class GeminiAIService {
   /**
    * Create an ultra-simple prompt following Gemini documentation examples
    */
-  private createTryOnPrompt(request: GeminiGenerationRequest, hasHumanInTarget: boolean): string {
+  private createTryOnPrompt(request: GeminiGenerationRequest): string {
     const styleDescriptions = {
       realistic: 'Make it photorealistic.',
       artistic: 'Make it artistic and stylized.',
@@ -200,34 +189,9 @@ export class GeminiAIService {
 
     const styleDesc = styleDescriptions[request.style] || styleDescriptions.realistic;
 
-    // Two scenarios: target has a model vs. product-only (flat lay, mannequin, packshot)
-    if (hasHumanInTarget) {
-      return `TASK: Virtual try-on.
-Use the FIRST image (USER_FACE) and SECOND image (USER_BODY) to replace the identity of the person in the THIRD image (TARGET_PRODUCT_SCENE).
-REQUIREMENTS:
-- Replace the face with the user's face and match skin tone and proportions.
-- Match the body shape to the user's body while preserving the original pose.
-- Do not change the clothing/product, logos, text, pattern, color, fabric, fit, or accessories in the THIRD image.
-- Do not change composition, camera angle, background, lighting, reflections, or shadows in the THIRD image.
-- Remove the original person's identity; the person must clearly become the user.
-CONSTRAINTS:
-- No added text, watermarks, or artifacts.
-- No extra people or objects.
-OUTPUT: One edited image only. ${styleDesc}`
-    }
-
-    // Product-only target: compose the user wearing the exact product in a matching style
-    return `TASK: Virtual try-on from product-only photo.
-Use the FIRST image (USER_FACE) and SECOND image (USER_BODY) to render the user wearing the product shown in the THIRD image (TARGET_PRODUCT_SCENE).
-REQUIREMENTS:
-- Recreate a natural human model with the user's face and approximate body shape.
-- Keep the product pixel-level identity: same garment, same color, pattern, texture, stitching, logos, and graphics.
-- Match the product photo's lighting, white balance, and material highlights. Preserve background characteristics (e.g., pure white packshot stays pure white), add realistic contact shadows only if present in the target.
-- Choose a neutral pose that showcases the product similar to its orientation in the THIRD image.
-CONSTRAINTS:
-- No alterations to the product design or text.
-- No extra props or busy backgrounds.
-OUTPUT: One generated image only. ${styleDesc}`
+    // CRITICAL: Define exact image order for Gemini to avoid confusion
+    // Image 1 = User's face, Image 2 = User's body, Image 3 = Product with original model
+    return `Replace the person in the THIRD image with the person from the FIRST and SECOND images. Use the face from the FIRST image and body shape from the SECOND image. Keep all clothes, pose, background and lighting from the THIRD image exactly the same. ${styleDesc}`;
   }
 
   /**
@@ -274,94 +238,6 @@ OUTPUT: One generated image only. ${styleDesc}`
     }
     // Default to JPEG if we can't determine
     return 'image/jpeg'
-  }
-
-  /**
-   * Resolve image string (data URL | URL | base64) into { base64, mimeType }
-   */
-  private async resolveImage(imageData: string): Promise<{ base64: string, mimeType: string }> {
-    if (imageData.startsWith('data:image/')) {
-      const mimeMatch = imageData.match(/data:(image\/[^;]+)/)
-      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg'
-      return { base64: await this.extractBase64Data(imageData), mimeType }
-    }
-
-    if (imageData.startsWith('http')) {
-      try {
-        const resp = await fetch(imageData)
-        if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`)
-        const contentType = resp.headers.get('content-type') || this.getMimeType(imageData)
-        const arrayBuffer = await resp.arrayBuffer()
-        const base64 = Buffer.from(arrayBuffer).toString('base64')
-        return { base64, mimeType: contentType.startsWith('image/') ? contentType : this.getMimeType(imageData) }
-      } catch (error) {
-        console.error('❌ resolveImage: failed to fetch target image', error)
-        // Fallback using previous extractor and heuristic mime
-        const base64 = await this.extractBase64Data(imageData)
-        return { base64, mimeType: this.getMimeType(imageData) }
-      }
-    }
-
-    // raw base64 without data URL
-    const b64 = await this.extractBase64Data(imageData)
-    // Heuristic mime from magic numbers
-    const head = b64.substring(0, 12)
-    let mime = 'image/jpeg'
-    if (head.startsWith('iVBORw0KGgo')) mime = 'image/png'
-    else if (head.startsWith('/9j/')) mime = 'image/jpeg'
-    else if (head.startsWith('R0lGOD')) mime = 'image/gif'
-    else if (head.startsWith('UklGR')) mime = 'image/webp'
-    return { base64: b64, mimeType: mime }
-  }
-
-  /**
-   * Ask Gemini 1.5 Flash to detect if the target image already contains a human model
-   */
-  private async detectTargetHasHumanModel(base64: string, mimeType: string): Promise<boolean> {
-    try {
-      const prompt = 'Answer strictly with yes or no: Does this image contain a visible human person wearing clothing?'
-      const payload = {
-        contents: [{ parts: [ { text: prompt }, { inlineData: { mimeType, data: base64 } } ] }],
-        generationConfig: { temperature: 0 }
-      }
-      const resp = await fetch(`${this.baseUrl}/models/gemini-1.5-flash:generateContent`, {
-        method: 'POST',
-        headers: {
-          'x-goog-api-key': this.apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      })
-      if (!resp.ok) {
-        console.warn('⚠️ detectTargetHasHumanModel: non-OK response', resp.status)
-        return true // default to true so we preserve pose/lights when unsure
-      }
-      const data: any = await resp.json()
-      const text = (data?.candidates?.[0]?.content?.parts || [])
-        .map((p: any) => p?.text)
-        .filter((t: any) => typeof t === 'string' && t.length > 0)
-        .join(' ') || ''
-      const answer = text.trim().toLowerCase()
-      const result = answer.startsWith('y') // yes
-      console.log('🧪 Human detection answer:', answer, '=>', result)
-      return result
-    } catch (e) {
-      console.warn('⚠️ detectTargetHasHumanModel failed, assuming true', (e as Error).message)
-      return true
-    }
-  }
-
-  /**
-   * Very lightweight check to see if output likely equals target image
-   */
-  private isLikelySameImage(generatedB64: string, targetB64: string): boolean {
-    if (!generatedB64 || !targetB64) return false
-    if (generatedB64.length === targetB64.length && generatedB64.substring(0, 64) === targetB64.substring(0, 64)) {
-      return true
-    }
-    const lengthRatio = Math.min(generatedB64.length, targetB64.length) / Math.max(generatedB64.length, targetB64.length)
-    const headEqual = generatedB64.substring(0, 24) === targetB64.substring(0, 24)
-    return headEqual && lengthRatio > 0.98
   }
 
   /**
